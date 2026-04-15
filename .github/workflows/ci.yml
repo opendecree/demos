@@ -1,0 +1,43 @@
+# CI pipeline for OpenDecree demos.
+#
+# Jobs: validate → check (alls-green gate)
+# Expanded as demos are added — each demo gets a validation job.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Check demo structure
+        run: |
+          echo "No demos yet — scaffold only."
+          echo "When demos are added, this job validates each demo's structure."
+
+  check:
+    name: CI check
+    if: always()
+    needs: [validate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: re-actors/alls-green@release/v1
+        with:
+          jobs: ${{ toJSON(needs) }}
