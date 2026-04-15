@@ -4,6 +4,8 @@
 
 This repo is a collection of hands-on examples that let you experience [OpenDecree](https://github.com/opendecree/decree) — from a 5-minute quickstart to production-grade patterns. Each demo is self-contained and runs with a single `docker compose up`.
 
+> **Alpha Software** — OpenDecree is under active development. These demos track the latest release and may change between versions.
+
 ## Prerequisites
 
 - **Docker** and **Docker Compose**
@@ -14,19 +16,33 @@ That's it. No language runtimes, no database setup, no fuss.
 
 > **Coming soon** — demos are being built. Star the repo to get notified!
 
-| Demo | What You'll See | Difficulty |
-|------|----------------|------------|
-| **Quickstart** | Create a schema, set config values, watch them update live | Beginner |
-| **No SDK (curl only)** | The full REST API with nothing but curl — zero install | Beginner |
-| **Pick Your Language** | The same scenario in Go, Python, and TypeScript side by side | Intermediate |
-| **Multi-Tenant** | Shared schemas, isolated config per tenant | Intermediate |
-| **Schema Evolution** | Evolve your schema safely — add fields, tighten constraints, migrate tenants | Intermediate |
-| **Config as Code** | Version-controlled config with CI/CD — seed, validate, promote | Advanced |
+| Demo | What You'll Learn | Difficulty |
+|------|------------------|------------|
+| **[Quickstart](quickstart/)** | Create a schema, set config values, watch them update live | Beginner |
+| **[No SDK (curl only)](rest-walkthrough/)** | Drive the full REST API with nothing but curl — zero install | Beginner |
+| **[Pick Your Language](multi-language/)** | The same scenario in Go, Python, and TypeScript side by side | Intermediate |
+| **[Multi-Tenant](multi-tenant/)** | Shared schemas, isolated config per tenant | Intermediate |
+| **[Schema Evolution](schema-evolution/)** | Evolve your schema safely — add fields, tighten constraints, migrate tenants | Intermediate |
+| **[Config as Code](config-as-code/)** | Version-controlled config with CI/CD — seed, validate, promote | Advanced |
 
-Each demo includes:
-- A `README.md` explaining what it does and why you'd care
-- A `docker-compose.yml` that starts everything you need
-- A step-by-step walkthrough you can follow or just read
+### Just want one demo?
+
+You don't need to clone the entire repo:
+
+```bash
+# Grab a single demo with sparse checkout
+git clone --no-checkout https://github.com/opendecree/demos.git
+cd demos
+git sparse-checkout set quickstart
+git checkout
+```
+
+### What each demo includes
+
+- A **README** with what you'll learn, step-by-step walkthrough, and things to try yourself
+- A **docker-compose.yml** that starts everything (decree server, Postgres, Redis)
+- A **`test.sh`** script that CI runs to verify the demo works
+- **Cleanup** instructions — `docker compose down -v` and you're back to clean
 
 ## What Is OpenDecree?
 
@@ -41,7 +57,7 @@ Think of it as "database migrations, but for your business config."
 
 ## Want to Contribute a Demo?
 
-We'd love that. Check out [CONTRIBUTING.md](CONTRIBUTING.md) for how to add a new demo. If you have an idea but aren't sure where to start, open a [Discussion](https://github.com/opendecree/decree/discussions) in the main repo.
+We'd love that. Check out [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and the demo README template. If you have an idea but aren't sure where to start, open a [Discussion](https://github.com/opendecree/decree/discussions) in the main repo.
 
 ## What's Next?
 
