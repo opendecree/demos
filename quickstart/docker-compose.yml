@@ -50,7 +50,7 @@ services:
   # The core config management service. Runs database migrations automatically.
   # Exposes gRPC (:9090) for SDKs and REST (:8080) for the admin UI / curl.
   decree-server:
-    image: ghcr.io/opendecree/decree:main
+    image: ghcr.io/opendecree/decree:0.8.0-alpha.1
     depends_on:
       postgres:
         condition: service_healthy
@@ -73,7 +73,7 @@ services:
   # Runs once on startup. The seed is idempotent — safe to re-run after
   # editing seed.yaml (existing values preserved, new fields added).
   seed:
-    image: ghcr.io/opendecree/decree-cli:main
+    image: ghcr.io/opendecree/decree-cli:0.8.0-alpha.1
     depends_on:
       decree-server:
         condition: service_started
@@ -90,7 +90,7 @@ services:
   # LAYOUT_MODE=single-tenant hides the schema/tenant navigation —
   # users just see config fields, not the underlying schema system.
   admin:
-    image: ghcr.io/opendecree/decree-ui:main
+    image: ghcr.io/opendecree/decree-ui:0.8.0-alpha.1
     depends_on:
       decree-server:
         condition: service_started
