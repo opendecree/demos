@@ -1,0 +1,54 @@
+syntax: v1
+schema:
+  name: payroll-service
+  description: Payroll processing configuration for the demo service
+  fields:
+    payroll.base_amount:
+      type: number
+      description: Base payroll amount per period
+      constraints:
+        minimum: 0
+    payroll.currency:
+      type: string
+      description: Payment currency code
+      constraints:
+        enum: [USD, EUR, GBP, ILS]
+    payroll.period_days:
+      type: integer
+      description: Pay period length in days
+      constraints:
+        minimum: 1
+        maximum: 365
+    payroll.tax_rate:
+      type: number
+      description: Tax rate as a decimal (0-1)
+      constraints:
+        minimum: 0
+        maximum: 1
+    payroll.overtime_multiplier:
+      type: number
+      description: Overtime pay multiplier
+      constraints:
+        minimum: 1
+    payroll.processing_fee:
+      type: number
+      description: Per-transaction processing fee
+      constraints:
+        minimum: 0
+tenant:
+  name: demo-company
+config:
+  description: Initial payroll configuration
+  values:
+    payroll.base_amount:
+      value: 5000
+    payroll.currency:
+      value: "USD"
+    payroll.period_days:
+      value: 30
+    payroll.tax_rate:
+      value: 0.025
+    payroll.overtime_multiplier:
+      value: 1.5
+    payroll.processing_fee:
+      value: 0.30
