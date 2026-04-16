@@ -1,0 +1,124 @@
+# Payroll Service Demo — Docker Compose
+#
+# Architecture:
+#   postgres + redis → decree-server → seed (init) → payroll-service
+#                                    → admin (UI)
+#
+# Ports:
+#   4000 — Payroll Service dashboard (the demo app)
+#   3000 — Admin panel (decree-ui) for editing config
+#   8080 — Decree REST API (for debugging / curl)
+#   9090 — Decree gRPC API (used by payroll-service internally)
+#
+# Data flow:
+#   1. seed.yaml defines schema + tenant + initial config
+#   2. Seed container loads it into decree-server on first start
+#   3. Payroll service reads config via gRPC (configclient + configwatcher)
+#   4. Admin panel edits config via REST → decree-server → Redis pub/sub →
+#      gRPC stream → payroll-service WebSocket → dashboard
+
+services:
+  # --- Infrastructure ---
+  # PostgreSQL stores schemas, config values, and audit history.
+  # The migration SQL runs automatically on first start via initdb.
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: centralconfig
+      POSTGRES_USER: centralconfig
+      POSTGRES_PASSWORD: localdev
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./seed/init.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U centralconfig"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  # Redis handles cache invalidation and real-time change notifications (pub/sub).
+  redis:
+    image: redis:7
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  # --- Decree Server ---
+  # The core config management service. Runs database migrations automatically.
+  # Exposes gRPC (:9090) for SDKs and REST (:8080) for the admin UI / curl.
+  decree-server:
+    image: ghcr.io/opendecree/decree:main
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      GRPC_PORT: "9090"                # SDK and CLI connect here
+      HTTP_PORT: "8080"                # Admin UI and REST clients connect here
+      DB_WRITE_URL: "postgres://centralconfig:localdev@postgres:5432/centralconfig?sslmode=disable"
+      DB_READ_URL: "postgres://centralconfig:localdev@postgres:5432/centralconfig?sslmode=disable"
+      REDIS_URL: "redis://redis:6379"
+      ENABLE_SERVICES: "schema,config,audit"  # All three gRPC services
+    # No host ports needed — services connect via Docker network.
+    # To access the REST API from the host (e.g., curl), uncomment:
+    # ports:
+    #   - "9090:9090"
+    #   - "8080:8080"
+
+  # --- Seed: load schema + tenant + config from file ---
+  # Runs once on startup. The seed is idempotent — safe to re-run after
+  # editing seed.yaml (existing values preserved, new fields added).
+  seed:
+    image: ghcr.io/opendecree/decree-cli:main
+    depends_on:
+      decree-server:
+        condition: service_started
+    volumes:
+      - ./seed.yaml:/seed.yaml:ro    # Schema definition ships with the deployment
+    # --wait health-checks the server before running (gRPC health protocol).
+    # Seed is idempotent — safe to re-run after editing seed.yaml.
+    command: ["seed", "/seed.yaml",
+      "--server", "decree-server:9090", "--subject", "demo-setup",
+      "--auto-publish", "--wait", "--wait-timeout", "60s"]
+
+  # --- Admin GUI ---
+  # The decree-ui admin panel. Non-technical users manage config here.
+  # LAYOUT_MODE=single-tenant hides the schema/tenant navigation —
+  # users just see config fields, not the underlying schema system.
+  admin:
+    image: ghcr.io/opendecree/decree-ui:main
+    depends_on:
+      decree-server:
+        condition: service_started
+    environment:
+      API_URL: http://decree-server:8080  # Proxied by nginx inside the container
+      LAYOUT_MODE: single-tenant          # Skip schema/tenant navigation
+      TENANT_ID: demo-company             # Auto-select tenant (slug resolved by server)
+      DEFAULT_ROLE: admin                 # Default to admin, not superadmin
+      DEFAULT_SUBJECT: admin              # Default auth identity
+    ports:
+      - "3000:80"
+
+  # --- Payroll Service (the demo app) ---
+  # A Go microservice that uses OpenDecree SDKs for runtime configuration.
+  # Uses tenant name slug — no UUID needed.
+  payroll-service:
+    build:
+      context: ./service
+      dockerfile: Dockerfile
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    environment:
+      DECREE_ADDR: decree-server:9090    # gRPC connection to decree
+      TENANT_ID: demo-company            # Tenant name slug (server resolves to UUID)
+      PORT: "4000"
+    ports:
+      - "4000:4000"
+
+volumes:
+  pgdata:       # Persistent database storage
