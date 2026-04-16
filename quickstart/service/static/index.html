@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payroll Service — OpenDecree Demo</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface-hover: #232735;
+      --border: #2a2e3a;
+      --text: #e4e6ed;
+      --text-muted: #8b8fa3;
+      --accent: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.15);
+      --green: #22c55e;
+      --green-glow: rgba(34, 197, 94, 0.15);
+      --amber: #f59e0b;
+      --red: #ef4444;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container { max-width: 720px; margin: 0 auto; }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    header h1 span { color: var(--text-muted); font-weight: 400; }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--red);
+      transition: background 0.3s;
+    }
+
+    .status-dot.connected { background: var(--green); box-shadow: 0 0 8px var(--green-glow); }
+
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .config-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .config-row:last-child { border-bottom: none; }
+
+    .config-label {
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+
+    .config-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .config-value {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.95rem;
+      font-weight: 500;
+      min-width: 80px;
+      text-align: right;
+      transition: color 0.3s, text-shadow 0.3s;
+    }
+
+    .config-value.flash {
+      color: var(--accent);
+      text-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    .btn {
+      padding: 0.4rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn:hover {
+      background: var(--surface-hover);
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
+    .btn:active { transform: scale(0.97); }
+
+    .live-badge {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      background: var(--green-glow);
+      color: var(--green);
+      font-weight: 500;
+    }
+
+    .admin-link {
+      display: block;
+      text-align: center;
+      margin-top: 1.5rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.9rem;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      transition: all 0.15s;
+    }
+
+    .admin-link:hover {
+      background: var(--accent-glow);
+      border-color: var(--accent);
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 2rem;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    .footer a { color: var(--accent); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    @keyframes flashIn {
+      0% { color: var(--accent); text-shadow: 0 0 16px var(--accent-glow); }
+      100% { color: var(--text); text-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Payroll Service <span>Configuration</span></h1>
+      <div class="status">
+        <div class="status-dot" id="ws-status"></div>
+        <span id="ws-label">Connecting...</span>
+      </div>
+    </header>
+
+    <div class="section">
+      <div class="section-title">API Values</div>
+      <div class="config-row">
+        <span class="config-label">Payroll Amount</span>
+        <div class="config-right">
+          <span class="config-value" id="val-amount">—</span>
+          <button class="btn" onclick="fetchAmount()">Fetch</button>
+        </div>
+      </div>
+      <div class="config-row">
+        <span class="config-label">Period Duration</span>
+        <div class="config-right">
+          <span class="config-value" id="val-period">—</span>
+          <button class="btn" onclick="fetchPeriod()">Fetch</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Live Config <span class="live-badge">auto-updates</span></div>
+      <div class="config-row">
+        <span class="config-label">Tax Rate</span>
+        <div class="config-right">
+          <span class="config-value" id="live-tax_rate">—</span>
+          <span class="live-badge">live</span>
+        </div>
+      </div>
+      <div class="config-row">
+        <span class="config-label">Overtime Multiplier</span>
+        <div class="config-right">
+          <span class="config-value" id="live-overtime_multiplier">—</span>
+          <span class="live-badge">live</span>
+        </div>
+      </div>
+      <div class="config-row">
+        <span class="config-label">Processing Fee</span>
+        <div class="config-right">
+          <span class="config-value" id="live-processing_fee">—</span>
+          <span class="live-badge">live</span>
+        </div>
+      </div>
+      <div class="config-row">
+        <span class="config-label">Currency</span>
+        <div class="config-right">
+          <span class="config-value" id="live-currency">—</span>
+          <span class="live-badge">live</span>
+        </div>
+      </div>
+    </div>
+
+    <a class="admin-link" href="http://localhost:3000" target="_blank">
+      Open Admin Panel &rarr;
+    </a>
+
+    <div class="footer">
+      Powered by <a href="https://github.com/opendecree/decree" target="_blank">OpenDecree</a>
+    </div>
+  </div>
+
+  <script>
+    // --- Formatting ---
+    const fmt = {
+      currency: (amount, cur) => {
+        try { return new Intl.NumberFormat('en-US', { style: 'currency', currency: cur || 'USD' }).format(amount); }
+        catch { return `${cur || '$'}${Number(amount).toFixed(2)}`; }
+      },
+      percent: (v) => `${(Number(v) * 100).toFixed(1)}%`,
+      multiplier: (v) => `${Number(v).toFixed(1)}x`,
+      fee: (v, cur) => {
+        try { return new Intl.NumberFormat('en-US', { style: 'currency', currency: cur || 'USD' }).format(v); }
+        catch { return `$${Number(v).toFixed(2)}`; }
+      },
+      days: (v) => `${v} days`,
+    };
+
+    let currentCurrency = 'USD';
+
+    // --- API fetch ---
+    async function fetchAmount() {
+      const el = document.getElementById('val-amount');
+      try {
+        const res = await fetch('/api/payroll-amount');
+        const data = await res.json();
+        currentCurrency = data.currency || 'USD';
+        el.textContent = fmt.currency(data.amount, data.currency);
+        flash(el);
+      } catch (e) { el.textContent = 'Error'; }
+    }
+
+    async function fetchPeriod() {
+      const el = document.getElementById('val-period');
+      try {
+        const res = await fetch('/api/period-duration');
+        const data = await res.json();
+        el.textContent = fmt.days(data.days);
+        flash(el);
+      } catch (e) { el.textContent = 'Error'; }
+    }
+
+    // --- Load initial live values ---
+    async function loadInitial() {
+      try {
+        const res = await fetch('/api/config');
+        const data = await res.json();
+        currentCurrency = data.currency || 'USD';
+        updateLive('tax_rate', data.tax_rate);
+        updateLive('overtime_multiplier', data.overtime_multiplier);
+        updateLive('processing_fee', data.processing_fee);
+        updateLive('currency', data.currency);
+      } catch (e) { console.error('Failed to load config:', e); }
+    }
+
+    // --- WebSocket ---
+    const fieldFormatters = {
+      'payroll.tax_rate': (v) => fmt.percent(v),
+      'payroll.overtime_multiplier': (v) => fmt.multiplier(v),
+      'payroll.processing_fee': (v) => fmt.fee(v, currentCurrency),
+      'payroll.currency': (v) => { currentCurrency = v; return v; },
+      'payroll.base_amount': (v) => fmt.currency(v, currentCurrency),
+      'payroll.period_days': (v) => fmt.days(v),
+    };
+
+    const fieldToLiveId = {
+      'payroll.tax_rate': 'tax_rate',
+      'payroll.overtime_multiplier': 'overtime_multiplier',
+      'payroll.processing_fee': 'processing_fee',
+      'payroll.currency': 'currency',
+    };
+
+    function updateLive(key, value) {
+      const el = document.getElementById(`live-${key}`);
+      if (!el) return;
+      const formatter = fieldFormatters[`payroll.${key}`] || String;
+      el.textContent = formatter(value);
+    }
+
+    function connectWS() {
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const ws = new WebSocket(`${proto}//${location.host}/api/ws`);
+
+      ws.onopen = () => {
+        document.getElementById('ws-status').classList.add('connected');
+        document.getElementById('ws-label').textContent = 'Connected';
+      };
+
+      ws.onclose = () => {
+        document.getElementById('ws-status').classList.remove('connected');
+        document.getElementById('ws-label').textContent = 'Reconnecting...';
+        setTimeout(connectWS, 2000);
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const liveId = fieldToLiveId[data.field];
+        if (liveId) {
+          updateLive(liveId, data.new);
+          flash(document.getElementById(`live-${liveId}`));
+        }
+        // Also update API values if they're showing
+        if (data.field === 'payroll.base_amount') {
+          const el = document.getElementById('val-amount');
+          if (el.textContent !== '—') {
+            el.textContent = fmt.currency(data.new, currentCurrency);
+            flash(el);
+          }
+        }
+        if (data.field === 'payroll.period_days') {
+          const el = document.getElementById('val-period');
+          if (el.textContent !== '—') {
+            el.textContent = fmt.days(data.new);
+            flash(el);
+          }
+        }
+      };
+    }
+
+    function flash(el) {
+      el.classList.remove('flash');
+      void el.offsetWidth; // force reflow
+      el.style.animation = 'flashIn 1.5s ease-out';
+      el.addEventListener('animationend', () => { el.style.animation = ''; }, { once: true });
+    }
+
+    // --- Init ---
+    loadInitial();
+    connectWS();
+  </script>
+</body>
+</html>
