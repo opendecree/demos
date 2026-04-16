@@ -56,19 +56,19 @@ When you change a value in the admin panel, it flows: Admin → Decree Server �
 
 ### Change a config value
 
-1. Open the [Admin panel](http://localhost:3000)
-2. Find `payroll.tax_rate` and change it from `0.025` to `0.1`
-3. Watch the dashboard — Tax Rate updates instantly from 2.5% to 10.0%
+1. Open the [Admin panel](http://localhost:3000) — it lands directly on the config editor
+2. Click **Edit**, then change `payroll.tax_rate` from `0.025` to `0.1`
+3. Click **Apply** and watch the dashboard — Tax Rate updates instantly from 2.5% to 10.0%
 
 ### Use the CLI
 
 ```bash
 # List current config (use tenant name — no UUID needed)
-docker compose exec seed decree config get-all demo-company \
+docker compose run --rm seed config get-all demo-company \
   --server decree-server:9090 --subject demo
 
 # Change processing fee via CLI
-docker compose exec seed decree config set demo-company \
+docker compose run --rm seed config set demo-company \
   payroll.processing_fee 0.99 \
   --server decree-server:9090 --subject demo
 ```
@@ -87,9 +87,9 @@ This is the powerful part — edit `seed.yaml` and re-seed to evolve your schema
        maximum: 1
    ```
 
-2. Re-seed:
+2. Re-seed (restart the seed container):
    ```bash
-   docker compose run --rm seed
+   docker compose up seed
    ```
 
 3. Check the admin panel — the new field appears, ready for configuration
@@ -117,7 +117,7 @@ docker compose down -v
 |---------|-------|-------|---------|
 | postgres | `postgres:17` | (internal) | Schema, config, and audit storage |
 | redis | `redis:7` | (internal) | Cache invalidation + real-time pub/sub |
-| decree-server | `ghcr.io/opendecree/decree:main` | 9090 (gRPC), 8080 (REST) | Core config management |
+| decree-server | `ghcr.io/opendecree/decree:main` | (internal) | Core config management |
 | seed | `ghcr.io/opendecree/decree-cli:main` | — | Init container: loads schema from file |
 | admin | `ghcr.io/opendecree/decree-ui:main` | 3000 | Admin GUI (nginx + React SPA) |
 | payroll-service | Built from `./service` | 4000 | Demo app (Go + WebSocket) |
@@ -144,6 +144,8 @@ docker compose down -v
 | `DEFAULT_ROLE` | admin | Default auth role (admin, not superadmin) |
 | `DEFAULT_SUBJECT` | admin | Default auth identity |
 | `BROWSER_API_URL` | (empty) | Browser API URL (empty = same-origin proxy) |
+| `LOGO_URL` | (empty) | Custom logo URL (empty = OpenDecree logo) |
+| `APP_NAME` | (empty) | Custom app name (empty = "OpenDecree") |
 
 ### Data Flow
 
@@ -166,7 +168,6 @@ seed.yaml → decree seed CLI → decree-server (Postgres)
 | Volume | Purpose |
 |--------|---------|
 | `pgdata` | Persistent Postgres data (survives `docker compose stop`) |
-| `seed-data` | Passes tenant ID from seed container to payroll-service |
 
 Use `docker compose down -v` to destroy all data and start fresh.
 
