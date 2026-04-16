@@ -139,8 +139,11 @@ docker compose down -v
 |----------|-------|---------|
 | `API_URL` | http://decree-server:8080 | Backend API (proxied by nginx) |
 | `LAYOUT_MODE` | single-tenant | Hides schema/tenant navigation |
-| `TENANT_ID` | (optional) | Pre-select a specific tenant |
+| `TENANT_ID` | demo-company | Pre-selected tenant (slug or UUID) |
 | `SCHEMA_ID` | (optional) | Pre-select a specific schema |
+| `DEFAULT_ROLE` | admin | Default auth role (admin, not superadmin) |
+| `DEFAULT_SUBJECT` | admin | Default auth identity |
+| `BROWSER_API_URL` | (empty) | Browser API URL (empty = same-origin proxy) |
 
 ### Data Flow
 
