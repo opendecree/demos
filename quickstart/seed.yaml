@@ -1,4 +1,4 @@
-syntax: v1
+spec_version: v1
 schema:
   name: payroll-service
   description: Payroll processing configuration for the demo service
