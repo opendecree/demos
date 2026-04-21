@@ -57,7 +57,7 @@ Think of it as "database migrations, but for your business config."
 
 ## Want to Contribute a Demo?
 
-We'd love that. Check out [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and the demo README template. If you have an idea but aren't sure where to start, open a [Discussion](https://github.com/opendecree/decree/discussions) in the main repo.
+We'd love that. Check out [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and the demo README template. If you have an idea but aren't sure where to start, open a [Discussion](https://github.com/orgs/opendecree/discussions) on our community hub.
 
 ## What's Next?
 
@@ -65,6 +65,10 @@ We'd love that. Check out [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and 
 - [Python SDK](https://github.com/opendecree/decree-python) — `pip install opendecree`
 - [TypeScript SDK](https://github.com/opendecree/decree-typescript) — `npm install @opendecree/sdk`
 - [Admin GUI](https://github.com/opendecree/decree-ui) — browser-based config management
+
+## Questions?
+
+Head to [OpenDecree Discussions](https://github.com/orgs/opendecree/discussions) — our community hub covers all OpenDecree repos.
 
 ## License
 
