@@ -1,5 +1,8 @@
 # OpenDecree Demos
 
+[![License](https://img.shields.io/github/license/opendecree/demos)](LICENSE)
+[![Project Status: WIP](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
+
 > See what schema-driven config management actually feels like.
 
 This repo is a collection of hands-on examples that let you experience [OpenDecree](https://github.com/opendecree/decree) — from a 5-minute quickstart to production-grade patterns. Each demo is self-contained and runs with a single `docker compose up`.
