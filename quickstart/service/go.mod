@@ -3,11 +3,11 @@ module github.com/opendecree/demos/quickstart/service
 go 1.24.0
 
 require (
-	github.com/coder/websocket v1.8.12
-	github.com/opendecree/decree/api v0.6.0-alpha.1
-	github.com/opendecree/decree/sdk/configclient v0.6.0-alpha.1
-	github.com/opendecree/decree/sdk/configwatcher v0.6.0-alpha.1
-	google.golang.org/grpc v1.79.3
+	github.com/coder/websocket v1.8.14
+	github.com/opendecree/decree/api v0.9.0-alpha.1
+	github.com/opendecree/decree/sdk/configclient v0.9.0-alpha.1
+	github.com/opendecree/decree/sdk/configwatcher v0.9.0-alpha.1
+	google.golang.org/grpc v1.80.0
 )
 
 require (
