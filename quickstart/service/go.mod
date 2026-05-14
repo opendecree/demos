@@ -4,9 +4,9 @@ go 1.24.0
 
 require (
 	github.com/coder/websocket v1.8.14
-	github.com/opendecree/decree/api v0.10.0-alpha.1
-	github.com/opendecree/decree/sdk/configclient v0.10.0-alpha.1
-	github.com/opendecree/decree/sdk/configwatcher v0.10.0-alpha.1
+	github.com/opendecree/decree/api v0.11.0-alpha.1
+	github.com/opendecree/decree/sdk/configclient v0.11.0-alpha.1
+	github.com/opendecree/decree/sdk/configwatcher v0.11.0-alpha.1
 	google.golang.org/grpc v1.80.0
 )
 
