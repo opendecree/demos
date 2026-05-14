@@ -13,6 +13,10 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      # quickstart/service is go 1.24; grpc 1.81+ requires go 1.25.
+      - dependency-name: "google.golang.org/grpc"
+        versions: [">=1.81.0"]
 
   - package-ecosystem: docker
     directory: /quickstart/service
