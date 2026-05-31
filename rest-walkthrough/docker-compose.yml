@@ -1,0 +1,52 @@
+# REST Walkthrough Demo — Docker Compose
+#
+# Minimal stack: postgres + redis + decree-server.
+# No SDK, no custom service — just the REST API on :8080.
+#
+# Ports:
+#   8080 — Decree REST API (the only port you need for this demo)
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: centralconfig
+      POSTGRES_USER: centralconfig
+      POSTGRES_PASSWORD: localdev
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./seed/init.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U centralconfig"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  decree-server:
+    image: ghcr.io/opendecree/decree:0.11.0-alpha.1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      GRPC_PORT: "9090"
+      HTTP_PORT: "8080"
+      DB_WRITE_URL: "postgres://centralconfig:localdev@postgres:5432/centralconfig?sslmode=disable"
+      DB_READ_URL: "postgres://centralconfig:localdev@postgres:5432/centralconfig?sslmode=disable"
+      REDIS_URL: "redis://redis:6379"
+      ENABLE_SERVICES: "schema,config,audit"
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
