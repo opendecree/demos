@@ -1,0 +1,20 @@
+spec_version: v1
+tenant:
+  name: acme
+  schema: payroll-service
+  # schema_version omitted — binds to whatever version is currently published
+config:
+  description: Initial payroll configuration for Acme Corp
+  values:
+    payroll.base_amount:
+      value: 5000
+    payroll.currency:
+      value: "USD"
+    payroll.period_days:
+      value: 30
+    payroll.tax_rate:
+      value: 0.025
+    payroll.overtime_multiplier:
+      value: 1.5
+    payroll.processing_fee:
+      value: 0.30
