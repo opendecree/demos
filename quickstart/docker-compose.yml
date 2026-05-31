@@ -1,8 +1,8 @@
 # Payroll Service Demo — Docker Compose
 #
 # Architecture:
-#   postgres + redis → decree-server → seed (init) → payroll-service
-#                                    → admin (UI)
+#   postgres + redis → decree-server → seed-schema → seed-acme + seed-globex
+#                                    → admin (UI)    → payroll-service
 #
 # Ports:
 #   4000 — Payroll Service dashboard (the demo app)
@@ -11,9 +11,9 @@
 #   9090 — Decree gRPC API (used by payroll-service internally)
 #
 # Data flow:
-#   1. seed.yaml defines schema + tenant + initial config
-#   2. Seed container loads it into decree-server on first start
-#   3. Payroll service reads config via gRPC (configclient + configwatcher)
+#   1. payroll.schema.seed.yaml defines the schema — deployed once, shared by all tenants
+#   2. org1.config.seed.yaml and org2.config.seed.yaml define per-tenant config
+#   3. Payroll service reads acme's config via gRPC (configclient + configwatcher)
 #   4. Admin panel edits config via REST → decree-server → Redis pub/sub →
 #      gRPC stream → payroll-service WebSocket → dashboard
 
@@ -69,21 +69,50 @@ services:
     #   - "9090:9090"
     #   - "8080:8080"
 
-  # --- Seed: load schema + tenant + config from file ---
-  # Runs once on startup. The seed is idempotent — safe to re-run after
-  # editing seed.yaml (existing values preserved, new fields added).
-  seed:
+  # --- Step 1: App deploys the schema ---
+  # Schema-only seed. Runs once on startup; idempotent on re-run.
+  # This mirrors what a real app does at deploy time: publish the schema
+  # independently of any tenant or config values.
+  seed-schema:
     image: ghcr.io/opendecree/decree-cli:0.11.0-alpha.1
     depends_on:
       decree-server:
         condition: service_started
     volumes:
-      - ./seed.yaml:/seed.yaml:ro    # Schema definition ships with the deployment
-    # --wait health-checks the server before running (gRPC health protocol).
-    # Seed is idempotent — safe to re-run after editing seed.yaml.
-    command: ["seed", "/seed.yaml",
+      - ./payroll.schema.seed.yaml:/payroll.schema.seed.yaml:ro
+    command: ["seed", "/payroll.schema.seed.yaml",
       "--server", "decree-server:9090", "--subject", "demo-setup",
       "--auto-publish", "--wait", "--wait-timeout", "60s"]
+
+  # --- Step 2: First tenant provisions its config ---
+  # Config-only seed for acme. The tenant references the schema by name;
+  # schema_version is omitted so it binds to the latest published version.
+  # This mirrors what a tenant's deployment pipeline does — independently of
+  # the application that owns the schema.
+  seed-acme:
+    image: ghcr.io/opendecree/decree-cli:0.11.0-alpha.1
+    depends_on:
+      seed-schema:
+        condition: service_completed_successfully
+    volumes:
+      - ./org1.config.seed.yaml:/org1.config.seed.yaml:ro
+    command: ["seed", "/org1.config.seed.yaml",
+      "--server", "decree-server:9090", "--subject", "demo-setup",
+      "--wait", "--wait-timeout", "60s"]
+
+  # --- Step 3: Second tenant onboards ---
+  # Same schema, independent config. Shows N tenants sharing one schema
+  # with per-tenant config values — no schema duplication needed.
+  seed-globex:
+    image: ghcr.io/opendecree/decree-cli:0.11.0-alpha.1
+    depends_on:
+      seed-schema:
+        condition: service_completed_successfully
+    volumes:
+      - ./org2.config.seed.yaml:/org2.config.seed.yaml:ro
+    command: ["seed", "/org2.config.seed.yaml",
+      "--server", "decree-server:9090", "--subject", "demo-setup",
+      "--wait", "--wait-timeout", "60s"]
 
   # --- Admin GUI ---
   # The decree-ui admin panel. Non-technical users manage config here.
@@ -97,7 +126,7 @@ services:
     environment:
       API_URL: http://decree-server:8080  # Proxied by nginx inside the container
       LAYOUT_MODE: single-tenant          # Skip schema/tenant navigation
-      TENANT_ID: demo-company             # Auto-select tenant (slug resolved by server)
+      TENANT_ID: acme                     # Auto-select acme tenant
       DEFAULT_ROLE: admin                 # Default to admin, not superadmin
       DEFAULT_SUBJECT: admin              # Default auth identity
     ports:
@@ -111,11 +140,11 @@ services:
       context: ./service
       dockerfile: Dockerfile
     depends_on:
-      seed:
+      seed-acme:
         condition: service_completed_successfully
     environment:
       DECREE_ADDR: decree-server:9090    # gRPC connection to decree
-      TENANT_ID: demo-company            # Tenant name slug (server resolves to UUID)
+      TENANT_ID: acme                    # Tenant name slug (server resolves to UUID)
       PORT: "4000"
     ports:
       - "4000:4000"

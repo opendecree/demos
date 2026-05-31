@@ -1,0 +1,20 @@
+spec_version: v1
+tenant:
+  name: globex
+  schema: payroll-service
+  # schema_version omitted — binds to whatever version is currently published
+config:
+  description: Initial payroll configuration for Globex Corp
+  values:
+    payroll.base_amount:
+      value: 6500
+    payroll.currency:
+      value: "EUR"
+    payroll.period_days:
+      value: 14
+    payroll.tax_rate:
+      value: 0.035
+    payroll.overtime_multiplier:
+      value: 1.75
+    payroll.processing_fee:
+      value: 0.25

@@ -4,80 +4,142 @@
 
 ## What you'll learn
 
-- How a service reads typed config values via the Go SDK
-- How config changes propagate instantly via WebSocket (no polling, no restarts)
-- How the admin panel lets non-technical users manage config without touching code
-- How schema files ship with your deployment and seed automatically on startup
+This tutorial shows one of OpenDecree's core ideas: **schema and config have different deployment lifecycles**.
+
+- The schema ships with the application — it's owned by the engineering team and deployed with the service.
+- Each tenant provisions its own config independently — against the published schema, without touching the schema definition.
+
+This separation lets N tenants share one schema while keeping their config values completely independent.
 
 ## Prerequisites
 
 - Docker and Docker Compose
+- (Optional) the `decree` CLI for step-by-step exploration
 
-## Run it
+## Quick start (copy-paste)
 
 ```bash
-docker compose up --build
+./run.sh
 ```
 
 Then open:
 - **[http://localhost:4000](http://localhost:4000)** — Payroll Service dashboard
 - **[http://localhost:3000](http://localhost:3000)** — Admin panel
 
+## Step-by-step walkthrough
+
+The same four steps `run.sh` executes, explained in detail.
+
+### Step 1 — App deploys the schema
+
+The schema is a deployment artifact. It ships with the application and is published once per release — independently of any tenant or config values.
+
+```bash
+decree seed payroll.schema.seed.yaml --auto-publish
+```
+
+`payroll.schema.seed.yaml` contains only a `schema` section — no `tenant`, no `config`. This is intentional: the application team owns the schema definition; tenants have no role in it.
+
+**Why it matters:** When you upgrade the application, you publish a new schema version. Tenants can migrate to it on their own schedule. Their config files don't change — only the `schema_version` binding changes.
+
+### Step 2 — First tenant (`acme`) provisions its config
+
+Acme Corp's deployment pipeline seeds its own config. The file references the schema by name — it does not redeclare fields or constraints.
+
+```bash
+decree seed org1.config.seed.yaml
+```
+
+`org1.config.seed.yaml` has a `tenant` section (with `schema: payroll-service`) and a `config` section. The `schema_version` field is omitted, which means it binds to whatever version is currently published — the pipeline doesn't need to track schema versions manually.
+
+**Why it matters:** Acme's pipeline is decoupled from the engineering team's release cycle. When a new schema version is published, Acme re-seeds to pick it up — or pins a specific version if they need more time.
+
+### Step 3 — Second tenant (`globex`) onboards
+
+Globex Corp is a new customer. Their team copies `org1.config.seed.yaml`, edits a few values, and seeds their own config.
+
+```bash
+# Edit org2.config.seed.yaml: change currency to EUR, period_days to 14, etc.
+decree seed org2.config.seed.yaml
+```
+
+Two tenants, one schema, independent config. The schema is not duplicated — Globex references the same `payroll-service` schema that Acme uses.
+
+**Why it matters:** Adding the hundredth tenant is identical to adding the second. The schema is a shared contract; config is per-tenant state.
+
+### Step 4 (optional) — Runtime override on top of the git baseline
+
+The seeded config is the git baseline — config-as-code. But you can layer runtime overrides on top without touching the seed file:
+
+```bash
+decree config set acme payroll.tax_rate 0.22 --server localhost:9090 --subject admin
+```
+
+Watch the Payroll Service dashboard — the tax rate updates instantly via gRPC stream, no restart needed.
+
+**Why it matters:** The seed file captures the stable baseline (reviewed, committed, audited). Operators apply short-lived overrides on top — without breaking the git workflow or requiring a redeployment.
+
 ## What's happening
 
 ```mermaid
 flowchart LR
-    subgraph Demo
-        Seed["Seed (init)"]
+    subgraph "Deploy time"
+        SchemaFile["payroll.schema.seed.yaml"]
+        Org1File["org1.config.seed.yaml"]
+        Org2File["org2.config.seed.yaml"]
+    end
+
+    subgraph "Runtime"
+        Server["Decree Server"]
         Admin["Admin Panel\n:3000"]
         Payroll["Payroll Service\n:4000"]
     end
 
-    Server["Decree Server"]
-
-    Seed -->|"loads seed.yaml"| Server
-    Admin -->|"edit config"| Server
-    Server -->|"gRPC stream"| Payroll
+    SchemaFile -->|"Step 1: decree seed"| Server
+    Org1File -->|"Step 2: decree seed"| Server
+    Org2File -->|"Step 3: decree seed"| Server
+    Admin -->|"Step 4: runtime override"| Server
+    Server -->|"gRPC stream (acme)"| Payroll
     Payroll -->|"WebSocket"| Browser["Your Browser"]
     Admin -.- Browser
 ```
-
-1. **Seed container** loads `seed.yaml` (schema + tenant + initial config) on startup
-2. **Payroll Service** connects to Decree via gRPC, reads config values, and serves a dashboard
-3. **Admin panel** (decree-ui) lets you edit config values in a browser
 
 The Payroll Service uses two SDK patterns:
 - **configclient** — on-demand reads (the "Fetch" buttons)
 - **configwatcher** — live subscription (the auto-updating values)
 
-When you change a value in the admin panel, it flows: Admin → Decree Server → Redis pub/sub → gRPC stream → configwatcher → WebSocket → Dashboard. No restart needed.
+When you change a value in the admin panel (or via CLI), it flows: Admin → Decree Server → Redis pub/sub → gRPC stream → configwatcher → WebSocket → Dashboard. No restart needed.
 
 ## Try it yourself
 
-### Change a config value
+### Change a config value via admin panel
 
-1. Open the [Admin panel](http://localhost:3000) — it lands directly on the config editor
+1. Open the [Admin panel](http://localhost:3000) — it lands on the acme config editor
 2. Click **Edit**, then change `payroll.tax_rate` from `0.025` to `0.1`
 3. Click **Apply** and watch the dashboard — Tax Rate updates instantly from 2.5% to 10.0%
 
 ### Use the CLI
 
 ```bash
-# List current config (use tenant name — no UUID needed)
-docker compose run --rm seed config get-all demo-company \
+# List acme's current config
+docker compose run --rm seed-acme config get-all acme \
   --server decree-server:9090 --subject demo
 
-# Change processing fee via CLI
-docker compose run --rm seed config set demo-company \
+# Apply a runtime override on top of the seeded baseline
+docker compose run --rm seed-acme config set acme \
   payroll.processing_fee 0.99 \
+  --server decree-server:9090 --subject demo
+
+# Check globex's config (different values, same schema)
+docker compose run --rm seed-globex config get-all globex \
   --server decree-server:9090 --subject demo
 ```
 
 ### Evolve the schema
 
-This is the powerful part — edit `seed.yaml` and re-seed to evolve your schema:
+Edit `payroll.schema.seed.yaml` and re-seed to publish a new schema version:
 
-1. Open `seed.yaml` and add a new field:
+1. Add a new field:
    ```yaml
    payroll.bonus_rate:
      type: number
@@ -87,18 +149,14 @@ This is the powerful part — edit `seed.yaml` and re-seed to evolve your schema
        maximum: 1
    ```
 
-2. Re-seed (restart the seed container):
+2. Re-seed the schema:
    ```bash
-   docker compose up seed
+   docker compose run --rm seed-schema
    ```
 
-3. Check the admin panel — the new field appears, ready for configuration
+3. Check the admin panel — the new field appears for both acme and globex, ready for configuration.
 
-Try also:
-- **Add constraints** — make `payroll.period_days` have `maximum: 90` and see validation kick in
-- **Change an enum** — add `"CHF"` to `payroll.currency` enum options
-
-The seed is idempotent — existing values are preserved, new fields are added.
+The seed is idempotent — existing values are preserved, new fields are added, schema version increments only when fields change.
 
 ## Clean up
 
@@ -118,7 +176,9 @@ docker compose down -v
 | postgres | `postgres:17` | (internal) | Schema, config, and audit storage |
 | redis | `redis:7` | (internal) | Cache invalidation + real-time pub/sub |
 | decree-server | `ghcr.io/opendecree/decree:0.11.0-alpha.1` | (internal) | Core config management |
-| seed | `ghcr.io/opendecree/decree-cli:0.11.0-alpha.1` | — | Init container: loads schema from file |
+| seed-schema | `ghcr.io/opendecree/decree-cli:0.11.0-alpha.1` | — | Step 1: imports payroll schema |
+| seed-acme | `ghcr.io/opendecree/decree-cli:0.11.0-alpha.1` | — | Step 2: provisions acme config |
+| seed-globex | `ghcr.io/opendecree/decree-cli:0.11.0-alpha.1` | — | Step 3: provisions globex config |
 | admin | `ghcr.io/opendecree/decree-ui:0.1.0-alpha.1` | 3000 | Admin GUI (nginx + React SPA) |
 | payroll-service | Built from `./service` | 4000 | Demo app (Go + WebSocket) |
 
@@ -139,7 +199,7 @@ docker compose down -v
 |----------|-------|---------|
 | `API_URL` | http://decree-server:8080 | Backend API (proxied by nginx) |
 | `LAYOUT_MODE` | single-tenant | Hides schema/tenant navigation |
-| `TENANT_ID` | demo-company | Pre-selected tenant (slug or UUID) |
+| `TENANT_ID` | acme | Pre-selected tenant (slug or UUID) |
 | `SCHEMA_ID` | (optional) | Pre-select a specific schema |
 | `DEFAULT_ROLE` | admin | Default auth role (admin, not superadmin) |
 | `DEFAULT_SUBJECT` | admin | Default auth identity |
@@ -150,11 +210,13 @@ docker compose down -v
 ### Data Flow
 
 ```
-seed.yaml → decree seed CLI → decree-server (Postgres)
+payroll.schema.seed.yaml → decree seed CLI → decree-server (Postgres)
+org1.config.seed.yaml   → decree seed CLI ↗
+org2.config.seed.yaml   → decree seed CLI ↗
                                     ↓
                               Redis pub/sub
                                     ↓
-                        gRPC Subscribe stream
+                        gRPC Subscribe stream (acme tenant)
                                     ↓
                      payroll-service (configwatcher)
                                     ↓
@@ -176,6 +238,5 @@ Use `docker compose down -v` to destroy all data and start fresh.
 ## Next steps
 
 - [No SDK demo](../rest-walkthrough/) — drive the same API with curl (no Go needed)
-- [Multi-Tenant demo](../multi-tenant/) — same schema, different tenants
 - [OpenDecree docs](https://github.com/opendecree/decree) — full API, CLI, and SDK reference
 - [Go SDK](https://pkg.go.dev/github.com/opendecree/decree/sdk/configclient) — configclient, configwatcher, adminclient
