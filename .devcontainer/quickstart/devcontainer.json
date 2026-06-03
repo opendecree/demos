@@ -1,0 +1,35 @@
+{
+  "name": "OpenDecree — Quickstart Demo",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+  "workspaceFolder": "/workspaces/demos",
+  // Pull pre-built images and build the payroll service on first create.
+  // Prebuilds run this step ahead of time — resume is instant.
+  "postCreateCommand": "cd quickstart && docker compose pull --ignore-buildable && docker compose build && docker compose up -d",
+  "postStartCommand": "cd quickstart && docker compose up -d 2>/dev/null || true",
+  "forwardPorts": [4000, 3000, 8080],
+  "portsAttributes": {
+    "4000": {
+      "label": "Payroll Service",
+      "onAutoForward": "notify"
+    },
+    "3000": {
+      "label": "Admin Panel",
+      "onAutoForward": "notify"
+    },
+    "8080": {
+      "label": "Decree REST API",
+      "onAutoForward": "silent"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-azuretools.vscode-docker"],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}

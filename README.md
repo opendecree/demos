@@ -9,6 +9,19 @@ This repo is a collection of hands-on examples that let you experience [OpenDecr
 
 > **Alpha Software** — OpenDecree is under active development. These demos track the latest release and may change between versions.
 
+## Run in Codespaces (no install)
+
+Click a button → browser IDE → running demo. No Docker, no language runtime, no setup.
+
+| Demo | Open in Codespaces |
+|------|--------------------|
+| **[Quickstart](quickstart/)** | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/opendecree/demos?devcontainer_path=.devcontainer%2Fquickstart%2Fdevcontainer.json) |
+| **[REST Walkthrough](rest-walkthrough/)** | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/opendecree/demos?devcontainer_path=.devcontainer%2Frest-walkthrough%2Fdevcontainer.json) |
+
+The devcontainer starts decree server, Postgres, and Redis automatically. Ports are forwarded so your browser can reach the running demo.
+
+> **Faster boot:** Repo admins can enable [Codespaces prebuilds](https://docs.github.com/en/codespaces/prebuilding-your-codespaces) in repository Settings → Codespaces. Prebuilds run the image build and `postCreateCommand` ahead of time, reducing cold-start to under 60 seconds.
+
 ## Prerequisites
 
 - **Docker** and **Docker Compose**
@@ -44,6 +57,7 @@ git checkout
 
 - A **README** with what you'll learn, step-by-step walkthrough, and things to try yourself
 - A **docker-compose.yml** that starts everything (decree server, Postgres, Redis)
+- A **devcontainer** so you can run it in GitHub Codespaces with one click
 - A **`test.sh`** script that CI runs to verify the demo works
 - **Cleanup** instructions — `docker compose down -v` and you're back to clean
 
