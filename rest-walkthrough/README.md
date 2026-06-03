@@ -1,5 +1,7 @@
 # REST Walkthrough
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/opendecree/demos?devcontainer_path=.devcontainer%2Frest-walkthrough%2Fdevcontainer.json)
+
 > Drive the full OpenDecree API with nothing but `curl`. No SDK, no language runtime — just HTTP.
 
 ## What you'll learn

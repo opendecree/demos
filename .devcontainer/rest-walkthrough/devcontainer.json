@@ -1,0 +1,27 @@
+{
+  "name": "OpenDecree — REST Walkthrough",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+  "workspaceFolder": "/workspaces/demos",
+  // Pull images and start the stack — no build step needed (all pre-built images).
+  // Cold start is typically under 60 seconds with prebuilds enabled.
+  "postCreateCommand": "cd rest-walkthrough && docker compose pull && docker compose up -d",
+  "postStartCommand": "cd rest-walkthrough && docker compose up -d 2>/dev/null || true",
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": {
+      "label": "Decree REST API",
+      "onAutoForward": "notify"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-azuretools.vscode-docker"],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}

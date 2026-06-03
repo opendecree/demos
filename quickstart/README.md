@@ -1,5 +1,7 @@
 # Quickstart: Payroll Service
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/opendecree/demos?devcontainer_path=.devcontainer%2Fquickstart%2Fdevcontainer.json)
+
 > A fintech microservice that reads its configuration from OpenDecree — with a live dashboard that updates in real time.
 
 ## What you'll learn
