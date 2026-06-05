@@ -1,0 +1,27 @@
+spec_version: v1
+schema:
+  name: saas-ecommerce
+  description: E-commerce SaaS platform configuration schema
+  fields:
+    checkout.currency:
+      type: string
+      description: Store currency code
+      constraints:
+        enum: [USD, EUR, GBP]
+    checkout.tax_rate:
+      type: number
+      description: Tax rate as a decimal (0–0.5)
+      constraints:
+        minimum: 0
+        maximum: 0.5
+    notifications.email_enabled:
+      type: bool
+      description: Whether to send email notifications to customers
+    notifications.webhook_url:
+      type: url
+      description: Webhook endpoint for order event notifications
+    pricing.free_tier_limit:
+      type: integer
+      description: Maximum number of free-tier orders per month
+      constraints:
+        minimum: 0
