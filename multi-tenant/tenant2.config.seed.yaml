@@ -1,0 +1,18 @@
+spec_version: v1
+tenant:
+  name: tenant2
+  schema: saas-ecommerce
+  # schema_version omitted — binds to whatever version is currently published
+config:
+  description: Config for Tenant 2 (EU store)
+  values:
+    checkout.currency:
+      value: "EUR"
+    checkout.tax_rate:
+      value: 0.20
+    notifications.email_enabled:
+      value: true
+    notifications.webhook_url:
+      value: "https://hooks.tenant2.example.com/orders"
+    pricing.free_tier_limit:
+      value: 50

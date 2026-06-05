@@ -1,0 +1,122 @@
+# Multi-Tenant Demo — Docker Compose
+#
+# Architecture:
+#   postgres + redis → decree-server → seed-schema
+#                                    → seed-tenant1
+#                                    → seed-tenant2
+#                                    → admin (UI)
+#
+# Ports:
+#   3000 — Admin panel (decree-ui) for viewing/editing config
+#   8080 — Decree REST API (exposed for CLI walkthrough)
+#
+# Data flow:
+#   1. schema.seed.yaml defines the schema — deployed once, shared by all tenants
+#   2. tenant1.config.seed.yaml and tenant2.config.seed.yaml define per-tenant config
+#   3. Admin panel lets you view and edit any tenant's config via the UI
+
+services:
+  # --- Infrastructure ---
+  # PostgreSQL stores schemas, config values, and audit history.
+  # The migration SQL runs automatically on first start via initdb.
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: centralconfig
+      POSTGRES_USER: centralconfig
+      POSTGRES_PASSWORD: localdev
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./seed/init.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U centralconfig"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  # Redis handles cache invalidation and real-time change notifications (pub/sub).
+  redis:
+    image: redis:7
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  # --- Decree Server ---
+  # The core config management service. Runs database migrations automatically.
+  # Exposes gRPC (:9090) for SDKs and CLI, and REST (:8080) for the admin UI / curl.
+  decree-server:
+    image: ghcr.io/opendecree/decree:0.11.0-alpha.1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      GRPC_PORT: "9090"
+      HTTP_PORT: "8080"
+      DB_WRITE_URL: "postgres://centralconfig:localdev@postgres:5432/centralconfig?sslmode=disable"
+      DB_READ_URL: "postgres://centralconfig:localdev@postgres:5432/centralconfig?sslmode=disable"
+      REDIS_URL: "redis://redis:6379"
+      ENABLE_SERVICES: "schema,config,audit"
+    ports:
+      - "8080:8080"   # Exposed so the run.sh CLI walkthrough can reach it from the host
+
+  # --- Step 1: App deploys the schema ---
+  # Schema-only seed. Runs once on startup; idempotent on re-run.
+  seed-schema:
+    image: ghcr.io/opendecree/decree-cli:0.11.0-alpha.1
+    depends_on:
+      decree-server:
+        condition: service_started
+    volumes:
+      - ./schema.seed.yaml:/schema.seed.yaml:ro
+    command: ["seed", "/schema.seed.yaml",
+      "--server", "decree-server:9090", "--subject", "demo-setup",
+      "--auto-publish", "--wait", "--wait-timeout", "60s"]
+
+  # --- Step 2: Tenant 1 (US store) provisions its config ---
+  seed-tenant1:
+    image: ghcr.io/opendecree/decree-cli:0.11.0-alpha.1
+    depends_on:
+      seed-schema:
+        condition: service_completed_successfully
+    volumes:
+      - ./tenant1.config.seed.yaml:/tenant1.config.seed.yaml:ro
+    command: ["seed", "/tenant1.config.seed.yaml",
+      "--server", "decree-server:9090", "--subject", "demo-setup",
+      "--wait", "--wait-timeout", "60s"]
+
+  # --- Step 3: Tenant 2 (EU store) onboards ---
+  # Same schema, independent config.
+  seed-tenant2:
+    image: ghcr.io/opendecree/decree-cli:0.11.0-alpha.1
+    depends_on:
+      seed-schema:
+        condition: service_completed_successfully
+    volumes:
+      - ./tenant2.config.seed.yaml:/tenant2.config.seed.yaml:ro
+    command: ["seed", "/tenant2.config.seed.yaml",
+      "--server", "decree-server:9090", "--subject", "demo-setup",
+      "--wait", "--wait-timeout", "60s"]
+
+  # --- Admin GUI ---
+  # The decree-ui admin panel. Runs in multi-tenant mode so you can switch
+  # between tenant1 and tenant2 and see their independent config values.
+  admin:
+    image: ghcr.io/opendecree/decree-ui:0.1.0-alpha.1
+    depends_on:
+      decree-server:
+        condition: service_started
+    environment:
+      API_URL: http://decree-server:8080
+      LAYOUT_MODE: multi-tenant          # Shows schema/tenant navigation
+      DEFAULT_ROLE: superadmin           # Allows viewing all tenants
+      DEFAULT_SUBJECT: admin
+    ports:
+      - "3000:80"
+
+volumes:
+  pgdata:
