@@ -40,7 +40,7 @@ echo "=== Publish schema ==="
 curl -sf -X POST "${BASE}/v1/schemas/${SCHEMA_ID}/publish" \
   -H "Content-Type: application/json" \
   -H "x-subject: ${SUBJECT}" \
-  -d '{"description": "CI publish"}' >/dev/null
+  -d '{"version": 1}' >/dev/null
 
 echo "=== Create tenant ==="
 TENANT=$(curl -sf -X POST "${BASE}/v1/tenants" \

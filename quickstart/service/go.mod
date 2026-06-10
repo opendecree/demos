@@ -4,14 +4,16 @@ go 1.24.0
 
 require (
 	github.com/coder/websocket v1.8.14
-	github.com/opendecree/decree/api v0.11.0-alpha.1
-	github.com/opendecree/decree/sdk/configclient v0.11.0-alpha.1
 	github.com/opendecree/decree/sdk/configwatcher v0.11.0-alpha.1
+	github.com/opendecree/decree/sdk/grpctransport v0.11.0-alpha.1
 	google.golang.org/grpc v1.80.0
 )
 
 require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0 // indirect
+	github.com/opendecree/decree/api v0.11.0-alpha.1 // indirect
+	github.com/opendecree/decree/sdk/adminclient v0.11.0-alpha.1 // indirect
+	github.com/opendecree/decree/sdk/configclient v0.11.0-alpha.1 // indirect
 	golang.org/x/net v0.49.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect

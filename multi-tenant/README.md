@@ -98,33 +98,46 @@ pricing.free_tier_limit: 50
 
 ### Step 4 — Verify isolation
 
+Look up each tenant's ID (REST endpoints address tenants by UUID, not name):
+
+```bash
+curl -s http://localhost:8080/v1/tenants -H "x-subject: demo-user" | python3 -m json.tool
+```
+
+Note the `id` for `tenant1` and `tenant2`, then export them for the commands below:
+
+```bash
+export TENANT1_ID=<tenant1 id>
+export TENANT2_ID=<tenant2 id>
+```
+
 Read both tenants and confirm their values are independent:
 
 ```bash
 # Tenant 1 — US store
-curl http://localhost:8080/v1/config/tenant1/snapshot
+curl http://localhost:8080/v1/tenants/$TENANT1_ID/config -H "x-subject: demo-user"
 
 # Tenant 2 — EU store
-curl http://localhost:8080/v1/config/tenant2/snapshot
+curl http://localhost:8080/v1/tenants/$TENANT2_ID/config -H "x-subject: demo-user"
 ```
 
 Now change tenant 1's tax rate:
 
 ```bash
-curl -X PUT http://localhost:8080/v1/config/tenant1/values/checkout.tax_rate \
+curl -X PUT http://localhost:8080/v1/tenants/$TENANT1_ID/config/fields/checkout.tax_rate \
   -H "Content-Type: application/json" \
-  -H "X-Decree-Subject: demo-user" \
-  -d '{"value": "0.10"}'
+  -H "x-subject: demo-user" \
+  -d '{"value": {"numberValue": 0.10}, "description": "Runtime override demo"}'
 ```
 
 Read both again — tenant 2 is untouched:
 
 ```bash
-# tenant1 → 0.10 (updated)
-curl http://localhost:8080/v1/config/tenant1/values/checkout.tax_rate
+# tenant1 → 0.1 (updated)
+curl http://localhost:8080/v1/tenants/$TENANT1_ID/config/fields/checkout.tax_rate -H "x-subject: demo-user"
 
-# tenant2 → 0.20 (unchanged)
-curl http://localhost:8080/v1/config/tenant2/values/checkout.tax_rate
+# tenant2 → 0.2 (unchanged)
+curl http://localhost:8080/v1/tenants/$TENANT2_ID/config/fields/checkout.tax_rate -H "x-subject: demo-user"
 ```
 
 **Why it matters:** Config changes are scoped to a single tenant. There is no shared mutable state between tenants — even though they share a schema.
@@ -135,10 +148,10 @@ Try setting an invalid value — the server rejects it:
 
 ```bash
 # Attempt to set currency to an unsupported value (not in enum)
-curl -X PUT http://localhost:8080/v1/config/tenant1/values/checkout.currency \
+curl -X PUT http://localhost:8080/v1/tenants/$TENANT1_ID/config/fields/checkout.currency \
   -H "Content-Type: application/json" \
-  -H "X-Decree-Subject: demo-user" \
-  -d '{"value": "JPY"}'
+  -H "x-subject: demo-user" \
+  -d '{"value": {"stringValue": "JPY"}}'
 # → 400 Bad Request: constraint violation
 ```
 

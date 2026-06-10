@@ -57,6 +57,7 @@ services:
     environment:
       GRPC_PORT: "9090"
       HTTP_PORT: "8080"
+      INSECURE_LISTEN: "1"             # Plaintext gRPC/HTTP — local demo only
       DB_WRITE_URL: "postgres://centralconfig:localdev@postgres:5432/centralconfig?sslmode=disable"
       DB_READ_URL: "postgres://centralconfig:localdev@postgres:5432/centralconfig?sslmode=disable"
       REDIS_URL: "redis://redis:6379"

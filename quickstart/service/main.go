@@ -19,9 +19,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	pb "github.com/opendecree/decree/api/centralconfig/v1"
-	"github.com/opendecree/decree/sdk/configclient"
 	"github.com/opendecree/decree/sdk/configwatcher"
+	"github.com/opendecree/decree/sdk/grpctransport"
 )
 
 func main() {
@@ -51,15 +50,10 @@ func run() error {
 	log.Printf("Using tenant: %s", tenantID)
 
 	// --- Config client for on-demand reads ---
-	client := configclient.New(
-		pb.NewConfigServiceClient(conn),
-		configclient.WithSubject("payroll-service"),
-	)
+	client := grpctransport.NewConfigClient(conn, grpctransport.WithSubject("payroll-service"))
 
 	// --- Config watcher for live values ---
-	w := configwatcher.New(conn, tenantID,
-		configwatcher.WithSubject("payroll-service"),
-	)
+	w := grpctransport.NewWatcher(conn, tenantID, grpctransport.WithSubject("payroll-service"))
 	taxRate := w.Float("payroll.tax_rate", 0.025)
 	overtimeMul := w.Float("payroll.overtime_multiplier", 1.5)
 	processingFee := w.Float("payroll.processing_fee", 0.30)
