@@ -32,16 +32,14 @@ That's it. No language runtimes, no database setup, no fuss.
 
 ## Pick Your Path
 
-> **Coming soon** — demos are being built. Star the repo to get notified!
-
 | Demo | What You'll Learn | Difficulty |
 |------|------------------|------------|
 | **[Quickstart](quickstart/)** | Create a schema, set config values, watch them update live | Beginner |
 | **[No SDK (curl only)](rest-walkthrough/)** | Drive the full REST API with nothing but curl — zero install | Beginner |
-| **[Pick Your Language](multi-language/)** | The same scenario in Go, Python, and TypeScript side by side | Intermediate |
 | **[Multi-Tenant](multi-tenant/)** | Shared schemas, isolated config per tenant | Intermediate |
-| **[Schema Evolution](schema-evolution/)** | Evolve your schema safely — add fields, tighten constraints, migrate tenants | Intermediate |
-| **[Config as Code](config-as-code/)** | Version-controlled config with CI/CD — seed, validate, promote | Advanced |
+| Pick Your Language *(planned)* | The same scenario in Go, Python, and TypeScript side by side | Intermediate |
+| Schema Evolution *(planned)* | Evolve your schema safely — add fields, tighten constraints, migrate tenants | Intermediate |
+| Config as Code *(planned)* | Version-controlled config with CI/CD — seed, validate, promote | Advanced |
 
 ### Just want one demo?
 

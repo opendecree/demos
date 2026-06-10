@@ -6,7 +6,7 @@ Hands-on examples for OpenDecree. Each demo is self-contained, runs via Docker C
 
 ## Status
 
-Alpha — scaffold only, no demos yet.
+Alpha — `quickstart`, `rest-walkthrough`, and `multi-tenant` are shipped and CI-tested. Remaining demos planned (see `.agents/context/demos-setup.md`). Everything subject to change.
 
 ## Structure
 

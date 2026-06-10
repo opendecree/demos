@@ -1,7 +1,7 @@
 # CI pipeline for OpenDecree demos.
 #
-# Jobs: validate → check (alls-green gate)
-# Expanded as demos are added — each demo gets a validation job.
+# Jobs: one per demo (docker compose up + test.sh) → check (alls-green gate)
+# Each demo runs on its own runner since they share fixed ports.
 
 name: CI
 
@@ -16,8 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  validate:
-    name: Validate
+  quickstart:
+    name: Quickstart
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -26,15 +26,42 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Check demo structure
-        run: |
-          echo "No demos yet — scaffold only."
-          echo "When demos are added, this job validates each demo's structure."
+      - name: Run test.sh
+        working-directory: quickstart
+        run: bash test.sh
+
+  rest-walkthrough:
+    name: REST walkthrough
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Run test.sh
+        working-directory: rest-walkthrough
+        run: bash test.sh
+
+  multi-tenant:
+    name: Multi-tenant
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Run test.sh
+        working-directory: multi-tenant
+        run: bash test.sh
 
   check:
     name: CI check
     if: always()
-    needs: [validate]
+    needs: [quickstart, rest-walkthrough, multi-tenant]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

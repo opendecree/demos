@@ -86,7 +86,7 @@ Publishing locks the version and makes it available for tenant assignment.
 curl -s -X POST "http://localhost:8080/v1/schemas/${SCHEMA_ID}/publish" \
   -H "Content-Type: application/json" \
   -H "x-subject: walkthrough" \
-  -d '{"description": "Initial release"}' | jq .
+  -d '{"version": 1}' | jq .
 ```
 
 ---
