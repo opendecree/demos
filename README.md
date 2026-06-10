@@ -1,7 +1,9 @@
 # OpenDecree Demos
 
+[![CI](https://github.com/opendecree/demos/actions/workflows/ci.yml/badge.svg)](https://github.com/opendecree/demos/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/opendecree/demos)](LICENSE)
-[![Project Status: WIP](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/opendecree/demos?devcontainer_path=.devcontainer%2Fquickstart%2Fdevcontainer.json)
 
 > See what schema-driven config management actually feels like.
 
