@@ -50,14 +50,22 @@ func run() error {
 	}
 	log.Printf("Using tenant: %s", tenantID)
 
+	// Auth: a read-only config consumer scoped to its own tenant. 0.12 requires
+	// an explicit role for metadata auth (no JWT here).
+	authOpts := []grpctransport.Option{
+		grpctransport.WithSubject("payroll-service"),
+		grpctransport.WithRole("user"),
+		grpctransport.WithTenantID(tenantID),
+	}
+
 	// --- Config client for on-demand reads ---
-	client, err := grpctransport.NewConfigClient(conn, grpctransport.WithSubject("payroll-service"))
+	client, err := grpctransport.NewConfigClient(conn, authOpts...)
 	if err != nil {
 		return fmt.Errorf("create config client: %w", err)
 	}
 
 	// --- Config watcher for live values ---
-	w, err := grpctransport.NewWatcher(conn, tenantID, grpctransport.WithSubject("payroll-service"))
+	w, err := grpctransport.NewWatcher(conn, tenantID, authOpts...)
 	if err != nil {
 		return fmt.Errorf("create watcher: %w", err)
 	}
