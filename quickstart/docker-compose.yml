@@ -161,6 +161,9 @@ services:
     build:
       context: ./service
       dockerfile: Dockerfile
+    # The SDK dials decree-server at startup and the process exits if the server
+    # isn't reachable yet (e.g. on a cold/slow host). Restart until it connects.
+    restart: on-failure
     depends_on:
       seed-acme:
         condition: service_completed_successfully

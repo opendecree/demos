@@ -9,10 +9,17 @@ echo "=== Starting demo ==="
 
 echo ""
 echo "=== Waiting for payroll service ==="
-for i in $(seq 1 30); do
-  curl -sf http://localhost:4000/api/config >/dev/null && break
+READY=false
+for i in $(seq 1 45); do
+  curl -sf http://localhost:4000/api/config >/dev/null && { READY=true; break; }
   sleep 2
 done
+if [ "$READY" != true ]; then
+  echo "payroll-service did not become ready in time; recent logs:"
+  $COMPOSE logs --tail=40 payroll-service decree-server
+  $COMPOSE down -v
+  exit 1
+fi
 
 echo ""
 echo "=== Testing payroll service endpoints ==="
