@@ -18,7 +18,8 @@
 services:
   # --- Infrastructure ---
   # PostgreSQL stores schemas, config values, and audit history.
-  # The migration SQL runs automatically on first start via initdb.
+  # The schema, RLS policies, and decree_app role are created by the `migrate`
+  # service below — not by an initdb script.
   postgres:
     image: postgres:17
     environment:
@@ -27,7 +28,6 @@ services:
       POSTGRES_PASSWORD: localdev
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./seed/init.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U centralconfig"]
       interval: 2s
@@ -44,20 +44,40 @@ services:
       timeout: 5s
       retries: 10
 
+  # --- Database migrations ---
+  # Creates the tables, RLS policies, and the unprivileged decree_app role that
+  # the 0.12 server assumes (SET ROLE) on every connection. A fresh database must
+  # be migrated before the server starts, so decree-server waits for this to
+  # finish. Uses the decree CLI image, which bundles the migrations.
+  migrate:
+    image: ghcr.io/opendecree/decree-cli:0.12.0-alpha.4
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_WRITE_URL: "postgres://centralconfig:localdev@postgres:5432/centralconfig?sslmode=disable"
+    command: ["migrate", "up"]
+
   # --- Decree Server ---
-  # The core config management service. Runs database migrations automatically.
+  # The core config management service.
   # Exposes gRPC (:9090) for SDKs and CLI, and REST (:8080) for the admin UI / curl.
   decree-server:
-    image: ghcr.io/opendecree/decree:0.11.0-alpha.1
+    image: ghcr.io/opendecree/decree:0.12.0-alpha.4
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     environment:
       GRPC_PORT: "9090"
       HTTP_PORT: "8080"
       INSECURE_LISTEN: "1"             # Plaintext gRPC/HTTP — local demo only
+      # Accept x-subject / x-role / x-tenant-id from the demo's admin UI and curl
+      # calls. The 0.12 HTTP gateway rejects these identity headers from clients
+      # by default (impersonation guard); demos run behind a trusted local proxy.
+      DECREE_GATEWAY_TRUSTED_PROXY: "1"
       DB_WRITE_URL: "postgres://centralconfig:localdev@postgres:5432/centralconfig?sslmode=disable"
       DB_READ_URL: "postgres://centralconfig:localdev@postgres:5432/centralconfig?sslmode=disable"
       REDIS_URL: "redis://redis:6379"
@@ -68,7 +88,7 @@ services:
   # --- Step 1: App deploys the schema ---
   # Schema-only seed. Runs once on startup; idempotent on re-run.
   seed-schema:
-    image: ghcr.io/opendecree/decree-cli:0.11.0-alpha.1
+    image: ghcr.io/opendecree/decree-cli:0.12.0-alpha.4
     depends_on:
       decree-server:
         condition: service_started
@@ -76,11 +96,11 @@ services:
       - ./schema.seed.yaml:/schema.seed.yaml:ro
     command: ["seed", "/schema.seed.yaml",
       "--server", "decree-server:9090", "--subject", "demo-setup",
-      "--auto-publish", "--wait", "--wait-timeout", "60s"]
+      "--auto-publish", "--insecure", "--wait", "--wait-timeout", "60s"]
 
   # --- Step 2: Tenant 1 (US store) provisions its config ---
   seed-tenant1:
-    image: ghcr.io/opendecree/decree-cli:0.11.0-alpha.1
+    image: ghcr.io/opendecree/decree-cli:0.12.0-alpha.4
     depends_on:
       seed-schema:
         condition: service_completed_successfully
@@ -88,12 +108,12 @@ services:
       - ./tenant1.config.seed.yaml:/tenant1.config.seed.yaml:ro
     command: ["seed", "/tenant1.config.seed.yaml",
       "--server", "decree-server:9090", "--subject", "demo-setup",
-      "--wait", "--wait-timeout", "60s"]
+      "--insecure", "--wait", "--wait-timeout", "60s"]
 
   # --- Step 3: Tenant 2 (EU store) onboards ---
   # Same schema, independent config.
   seed-tenant2:
-    image: ghcr.io/opendecree/decree-cli:0.11.0-alpha.1
+    image: ghcr.io/opendecree/decree-cli:0.12.0-alpha.4
     depends_on:
       seed-schema:
         condition: service_completed_successfully
@@ -101,20 +121,21 @@ services:
       - ./tenant2.config.seed.yaml:/tenant2.config.seed.yaml:ro
     command: ["seed", "/tenant2.config.seed.yaml",
       "--server", "decree-server:9090", "--subject", "demo-setup",
-      "--wait", "--wait-timeout", "60s"]
+      "--insecure", "--wait", "--wait-timeout", "60s"]
 
   # --- Admin GUI ---
-  # The decree-ui admin panel. Runs in multi-tenant mode so you can switch
-  # between tenant1 and tenant2 and see their independent config values.
+  # The decree-ui admin panel. Runs in full mode with the superadmin role: the
+  # role-first rail shows the system overview, the tenant list, and schemas, so
+  # you can switch between tenant1 and tenant2 and see their independent config.
   admin:
-    image: ghcr.io/opendecree/decree-ui:0.1.0-alpha.1
+    image: ghcr.io/opendecree/decree-ui:0.2.0-alpha.1
     depends_on:
       decree-server:
         condition: service_started
     environment:
       API_URL: http://decree-server:8080
-      LAYOUT_MODE: multi-tenant          # Shows schema/tenant navigation
-      DEFAULT_ROLE: superadmin           # Allows viewing all tenants
+      LAYOUT_MODE: full                  # Role-first rail: overview, tenants, schemas
+      DEFAULT_ROLE: superadmin           # superadmin sees all tenants
       DEFAULT_SUBJECT: admin
     ports:
       - "3000:80"
