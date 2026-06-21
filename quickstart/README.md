@@ -177,11 +177,11 @@ docker compose down -v
 |---------|-------|-------|---------|
 | postgres | `postgres:17` | (internal) | Schema, config, and audit storage |
 | redis | `redis:7` | (internal) | Cache invalidation + real-time pub/sub |
-| decree-server | `ghcr.io/opendecree/decree:0.11.0-alpha.1` | (internal) | Core config management |
-| seed-schema | `ghcr.io/opendecree/decree-cli:0.11.0-alpha.1` | — | Step 1: imports payroll schema |
-| seed-acme | `ghcr.io/opendecree/decree-cli:0.11.0-alpha.1` | — | Step 2: provisions acme config |
-| seed-globex | `ghcr.io/opendecree/decree-cli:0.11.0-alpha.1` | — | Step 3: provisions globex config |
-| admin | `ghcr.io/opendecree/decree-ui:0.1.0-alpha.1` | 3000 | Admin GUI (nginx + React SPA) |
+| decree-server | `ghcr.io/opendecree/decree:0.12.0-alpha.3` | (internal) | Core config management |
+| seed-schema | `ghcr.io/opendecree/decree-cli:0.12.0-alpha.3` | — | Step 1: imports payroll schema |
+| seed-acme | `ghcr.io/opendecree/decree-cli:0.12.0-alpha.3` | — | Step 2: provisions acme config |
+| seed-globex | `ghcr.io/opendecree/decree-cli:0.12.0-alpha.3` | — | Step 3: provisions globex config |
+| admin | `ghcr.io/opendecree/decree-ui:0.2.0-alpha.1` | 3000 | Admin GUI (nginx + React SPA) |
 | payroll-service | Built from `./service` | 4000 | Demo app (Go + WebSocket) |
 
 ### Decree Server Environment Variables

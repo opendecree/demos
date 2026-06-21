@@ -215,11 +215,11 @@ docker compose down -v
 |---------|-------|-------|---------|
 | postgres | `postgres:17` | (internal) | Schema, config, and audit storage |
 | redis | `redis:7` | (internal) | Cache invalidation + real-time pub/sub |
-| decree-server | `ghcr.io/opendecree/decree:0.11.0-alpha.1` | 8080 | Core config management |
-| seed-schema | `ghcr.io/opendecree/decree-cli:0.11.0-alpha.1` | — | Step 1: imports saas-ecommerce schema |
-| seed-tenant1 | `ghcr.io/opendecree/decree-cli:0.11.0-alpha.1` | — | Step 2: provisions tenant1 config |
-| seed-tenant2 | `ghcr.io/opendecree/decree-cli:0.11.0-alpha.1` | — | Step 3: provisions tenant2 config |
-| admin | `ghcr.io/opendecree/decree-ui:0.1.0-alpha.1` | 3000 | Admin GUI (multi-tenant mode) |
+| decree-server | `ghcr.io/opendecree/decree:0.12.0-alpha.3` | 8080 | Core config management |
+| seed-schema | `ghcr.io/opendecree/decree-cli:0.12.0-alpha.3` | — | Step 1: imports saas-ecommerce schema |
+| seed-tenant1 | `ghcr.io/opendecree/decree-cli:0.12.0-alpha.3` | — | Step 2: provisions tenant1 config |
+| seed-tenant2 | `ghcr.io/opendecree/decree-cli:0.12.0-alpha.3` | — | Step 3: provisions tenant2 config |
+| admin | `ghcr.io/opendecree/decree-ui:0.2.0-alpha.1` | 3000 | Admin GUI (multi-tenant mode) |
 
 ### Seed files
 

@@ -50,7 +50,7 @@ services:
   # The core config management service. Runs database migrations automatically.
   # Exposes gRPC (:9090) for SDKs and REST (:8080) for the admin UI / curl.
   decree-server:
-    image: ghcr.io/opendecree/decree:0.11.0-alpha.1
+    image: ghcr.io/opendecree/decree:0.12.0-alpha.3
     depends_on:
       postgres:
         condition: service_healthy
@@ -75,7 +75,7 @@ services:
   # This mirrors what a real app does at deploy time: publish the schema
   # independently of any tenant or config values.
   seed-schema:
-    image: ghcr.io/opendecree/decree-cli:0.11.0-alpha.1
+    image: ghcr.io/opendecree/decree-cli:0.12.0-alpha.3
     depends_on:
       decree-server:
         condition: service_started
@@ -91,7 +91,7 @@ services:
   # This mirrors what a tenant's deployment pipeline does — independently of
   # the application that owns the schema.
   seed-acme:
-    image: ghcr.io/opendecree/decree-cli:0.11.0-alpha.1
+    image: ghcr.io/opendecree/decree-cli:0.12.0-alpha.3
     depends_on:
       seed-schema:
         condition: service_completed_successfully
@@ -105,7 +105,7 @@ services:
   # Same schema, independent config. Shows N tenants sharing one schema
   # with per-tenant config values — no schema duplication needed.
   seed-globex:
-    image: ghcr.io/opendecree/decree-cli:0.11.0-alpha.1
+    image: ghcr.io/opendecree/decree-cli:0.12.0-alpha.3
     depends_on:
       seed-schema:
         condition: service_completed_successfully
@@ -120,7 +120,7 @@ services:
   # LAYOUT_MODE=single-tenant hides the schema/tenant navigation —
   # users just see config fields, not the underlying schema system.
   admin:
-    image: ghcr.io/opendecree/decree-ui:0.1.0-alpha.1
+    image: ghcr.io/opendecree/decree-ui:0.2.0-alpha.1
     depends_on:
       decree-server:
         condition: service_started

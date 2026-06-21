@@ -48,7 +48,7 @@ services:
   # The core config management service. Runs database migrations automatically.
   # Exposes gRPC (:9090) for SDKs and CLI, and REST (:8080) for the admin UI / curl.
   decree-server:
-    image: ghcr.io/opendecree/decree:0.11.0-alpha.1
+    image: ghcr.io/opendecree/decree:0.12.0-alpha.3
     depends_on:
       postgres:
         condition: service_healthy
@@ -68,7 +68,7 @@ services:
   # --- Step 1: App deploys the schema ---
   # Schema-only seed. Runs once on startup; idempotent on re-run.
   seed-schema:
-    image: ghcr.io/opendecree/decree-cli:0.11.0-alpha.1
+    image: ghcr.io/opendecree/decree-cli:0.12.0-alpha.3
     depends_on:
       decree-server:
         condition: service_started
@@ -80,7 +80,7 @@ services:
 
   # --- Step 2: Tenant 1 (US store) provisions its config ---
   seed-tenant1:
-    image: ghcr.io/opendecree/decree-cli:0.11.0-alpha.1
+    image: ghcr.io/opendecree/decree-cli:0.12.0-alpha.3
     depends_on:
       seed-schema:
         condition: service_completed_successfully
@@ -93,7 +93,7 @@ services:
   # --- Step 3: Tenant 2 (EU store) onboards ---
   # Same schema, independent config.
   seed-tenant2:
-    image: ghcr.io/opendecree/decree-cli:0.11.0-alpha.1
+    image: ghcr.io/opendecree/decree-cli:0.12.0-alpha.3
     depends_on:
       seed-schema:
         condition: service_completed_successfully
@@ -107,7 +107,7 @@ services:
   # The decree-ui admin panel. Runs in multi-tenant mode so you can switch
   # between tenant1 and tenant2 and see their independent config values.
   admin:
-    image: ghcr.io/opendecree/decree-ui:0.1.0-alpha.1
+    image: ghcr.io/opendecree/decree-ui:0.2.0-alpha.1
     depends_on:
       decree-server:
         condition: service_started
