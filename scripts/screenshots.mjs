@@ -4,12 +4,11 @@
  * Prerequisites: the demo stack is up (`./run.sh`) so the UI is served at
  * UI_URL and the decree REST API at API_URL.
  *
- * Usage (Playwright must be resolvable — e.g. run from a dir that has it, or
- * `npm i -D @playwright/test` in this repo first):
+ * Usage (`npm install` then `npx playwright install chromium` once):
  *   UI_URL=http://localhost:3000 API_URL=http://localhost:8080 \
  *   ROLE=superadmin OUT_DIR=assets/screenshots \
  *   SHOTS='[{"name":"overview","path":"/"}]' \
- *   node scripts/screenshots.mjs
+ *   npm run screenshots
  *
  * SHOTS is a JSON array of {name, path, wait?}. A `{tenantName}` token in a
  * path is replaced with that tenant's UUID (looked up via the API).
@@ -37,9 +36,7 @@ async function tenantMap() {
 const tenants = SHOTS.some((s) => s.path.includes("{")) ? await tenantMap() : new Map();
 mkdirSync(OUT_DIR, { recursive: true });
 
-// CHANNEL=chrome uses the system Chrome/Chromium instead of Playwright's
-// bundled build (handy when `npx playwright install` hasn't been run).
-const browser = await chromium.launch(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {});
+const browser = await chromium.launch();
 const context = await browser.newContext({
 	viewport: { width: 1440, height: Number(process.env.VIEWPORT_H) || 900 },
 	colorScheme: "dark",
