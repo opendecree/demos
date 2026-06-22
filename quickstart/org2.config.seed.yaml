@@ -4,8 +4,9 @@ tenant:
   schema: payroll-service
   # schema_version omitted — binds to whatever version is currently published
 config:
-  description: Initial payroll configuration for Globex Corp
+  description: Globex Corp baseline (EU)
   values:
+    # Pay run
     payroll.base_amount:
       value: 6500
     payroll.currency:
@@ -18,3 +19,20 @@ config:
       value: 1.75
     payroll.processing_fee:
       value: 0.25
+    # Schedule
+    schedule.run_at:
+      value: "2026-01-15T07:00:00Z"
+    schedule.processing_window:
+      value: "30m"
+    schedule.pay_day_of_month:
+      value: 25
+    # Notifications
+    notifications.payslip_email_enabled:
+      value: true
+    notifications.webhook_url:
+      value: "https://hooks.globex.example.com/payroll"
+    notifications.webhook_secret:
+      value: "globex-demo-signing-secret"
+    # Compliance
+    compliance.deductions:
+      value: '{"pension": 180, "health_insurance": 120}'

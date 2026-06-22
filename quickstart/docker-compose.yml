@@ -141,7 +141,7 @@ services:
   # picker; combined with DEFAULT_ROLE=admin, the role-first UI lands straight
   # on acme's config editor — no schema or tenant navigation.
   admin:
-    image: ghcr.io/opendecree/decree-ui:0.2.0-alpha.1
+    image: ghcr.io/opendecree/decree-ui:0.2.0-alpha.2
     depends_on:
       decree-server:
         condition: service_started

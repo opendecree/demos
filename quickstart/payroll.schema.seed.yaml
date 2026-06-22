@@ -3,35 +3,138 @@ schema:
   name: payroll-service
   description: Payroll processing configuration for the demo service
   fields:
+    # --- Pay run --- the values the payroll service reads live ---
     payroll.base_amount:
       type: number
-      description: Base payroll amount per period
+      title: Base Amount
+      description: Base payroll amount per period, before tax and adjustments.
+      example: "5000"
+      tags: [pay-run]
       constraints:
         minimum: 0
     payroll.currency:
       type: string
-      description: Payment currency code
+      title: Currency
+      description: ISO 4217 payment currency code.
+      example: "USD"
+      tags: [pay-run]
       constraints:
         enum: [USD, EUR, GBP, ILS]
     payroll.period_days:
       type: integer
-      description: Pay period length in days
+      title: Pay Period
+      description: Pay period length in days.
+      example: "30"
+      tags: [pay-run]
       constraints:
         minimum: 1
         maximum: 365
     payroll.tax_rate:
       type: number
-      description: Tax rate as a decimal (0-1)
+      title: Tax Rate
+      description: Tax withheld as a decimal fraction of gross pay.
+      format: percentage
+      tags: [pay-run, compliance]
+      examples:
+        us_federal:
+          value: "0.22"
+          summary: Typical US federal withholding
+        eu_standard:
+          value: "0.20"
+          summary: Standard EU rate
       constraints:
         minimum: 0
         maximum: 1
     payroll.overtime_multiplier:
       type: number
-      description: Overtime pay multiplier
+      title: Overtime Multiplier
+      description: Multiplier applied to the hourly rate for overtime hours.
+      example: "1.5"
+      tags: [pay-run]
       constraints:
         minimum: 1
     payroll.processing_fee:
       type: number
-      description: Per-transaction processing fee
+      title: Processing Fee
+      description: Flat per-transaction processing fee.
+      example: "0.30"
+      tags: [pay-run]
       constraints:
         minimum: 0
+
+    # --- Schedule --- when and how the pay run executes ---
+    schedule.run_at:
+      type: time
+      title: Pay Run Time
+      description: Time of day the payroll batch executes.
+      nullable: true
+      example: "2026-01-15T09:00:00Z"
+      tags: [schedule]
+    schedule.processing_window:
+      type: duration
+      title: Processing Window
+      description: Maximum time the payroll run may take before it is aborted.
+      example: "2h"
+      tags: [schedule]
+      constraints:
+        minimum: 300
+        maximum: 86400
+    schedule.pay_day_of_month:
+      type: integer
+      title: Pay Day
+      description: Day of the month on which employees are paid.
+      example: "1"
+      tags: [schedule]
+      constraints:
+        minimum: 1
+        maximum: 28
+
+    # --- Notifications --- payslip delivery + webhooks ---
+    notifications.payslip_email_enabled:
+      type: bool
+      title: Email Payslips
+      description: Send each employee an email when their payslip is ready.
+      tags: [notifications]
+    notifications.webhook_url:
+      type: url
+      title: Webhook URL
+      description: Endpoint that receives a POST when a pay run completes.
+      nullable: true
+      example: "https://hooks.example.com/payroll"
+      tags: [notifications, integrations]
+      externalDocs:
+        description: Payroll webhook payload reference
+        url: https://opendecree.dev/
+    notifications.webhook_secret:
+      type: string
+      title: Webhook Secret
+      description: HMAC signing secret for webhook payloads. Write-only — never returned on read.
+      nullable: true
+      sensitive: true
+      tags: [notifications, integrations]
+
+    # --- Compliance --- deductions + legacy ---
+    compliance.deductions:
+      type: json
+      title: Standard Deductions
+      description: Named pre-tax deductions applied to every employee, as amount per period.
+      nullable: true
+      example: '{"retirement_401k": 200, "health_insurance": 150}'
+      tags: [compliance]
+      constraints:
+        json_schema: '{"type":"object","additionalProperties":{"type":"number","minimum":0}}'
+      examples:
+        minimal:
+          value: '{"health_insurance": 150}'
+          summary: Health insurance only
+        full:
+          value: '{"retirement_401k": 200, "health_insurance": 150, "commuter": 50}'
+          summary: Full benefits package
+    compliance.flat_fee:
+      type: number
+      title: Flat Fee (deprecated)
+      description: "Deprecated: superseded by payroll.processing_fee."
+      nullable: true
+      deprecated: true
+      redirect_to: payroll.processing_fee
+      tags: [compliance, legacy]

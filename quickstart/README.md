@@ -188,7 +188,7 @@ docker compose down -v
 | seed-schema | `ghcr.io/opendecree/decree-cli:0.12.0-alpha.4` | — | Step 1: imports payroll schema |
 | seed-acme | `ghcr.io/opendecree/decree-cli:0.12.0-alpha.4` | — | Step 2: provisions acme config |
 | seed-globex | `ghcr.io/opendecree/decree-cli:0.12.0-alpha.4` | — | Step 3: provisions globex config |
-| admin | `ghcr.io/opendecree/decree-ui:0.2.0-alpha.1` | 3000 | Admin GUI (nginx + React SPA) |
+| admin | `ghcr.io/opendecree/decree-ui:0.2.0-alpha.2` | 3000 | Admin GUI (nginx + React SPA) |
 | payroll-service | Built from `./service` | 4000 | Demo app (Go + WebSocket) |
 
 ### Decree Server Environment Variables

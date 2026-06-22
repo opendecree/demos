@@ -128,7 +128,7 @@ services:
   # role-first rail shows the system overview, the tenant list, and schemas, so
   # you can switch between tenant1 and tenant2 and see their independent config.
   admin:
-    image: ghcr.io/opendecree/decree-ui:0.2.0-alpha.1
+    image: ghcr.io/opendecree/decree-ui:0.2.0-alpha.2
     depends_on:
       decree-server:
         condition: service_started

@@ -40,7 +40,10 @@ mkdirSync(OUT_DIR, { recursive: true });
 // CHANNEL=chrome uses the system Chrome/Chromium instead of Playwright's
 // bundled build (handy when `npx playwright install` hasn't been run).
 const browser = await chromium.launch(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {});
-const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: "dark" });
+const context = await browser.newContext({
+	viewport: { width: 1440, height: Number(process.env.VIEWPORT_H) || 900 },
+	colorScheme: "dark",
+});
 await context.addInitScript(
 	({ subject, role }) => {
 		localStorage.setItem("decree-auth", JSON.stringify({ subject, role }));
