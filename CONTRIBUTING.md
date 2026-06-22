@@ -118,6 +118,22 @@ git sparse-checkout set quickstart
 git checkout
 ```
 
+## Regenerating Screenshots
+
+Demo READMEs use screenshots of the admin UI captured by `scripts/screenshots.mjs`. To regenerate them:
+
+```bash
+npm install
+npx playwright install chromium   # one-time browser download
+
+UI_URL=http://localhost:3000 API_URL=http://localhost:8080 \
+  ROLE=superadmin OUT_DIR=assets/screenshots \
+  SHOTS='[{"name":"overview","path":"/"}]' \
+  npm run screenshots
+```
+
+The demo stack must already be running (`./run.sh` or `docker compose up`) so `UI_URL` and `API_URL` are reachable. `SHOTS` is a JSON array of `{name, path, wait?}`; a `{tenantName}` token in a path is replaced with that tenant's UUID looked up via the API.
+
 ## Questions?
 
 Open a [Discussion](https://github.com/opendecree/decree/discussions) in the main repo — that's where the community hangs out.
