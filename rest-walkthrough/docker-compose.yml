@@ -15,7 +15,6 @@ services:
       POSTGRES_PASSWORD: localdev
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./seed/init.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U centralconfig"]
       interval: 2s
@@ -31,17 +30,35 @@ services:
       timeout: 5s
       retries: 10
 
+  # A fresh 0.12 database has no decree_app role (the server runs SET ROLE on
+  # every connection), so migrations must run before the server starts. The
+  # decree CLI image bundles them.
+  migrate:
+    image: ghcr.io/opendecree/decree-cli:0.12.0-alpha.4
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_WRITE_URL: "postgres://centralconfig:localdev@postgres:5432/centralconfig?sslmode=disable"
+    command: ["migrate", "up"]
+
   decree-server:
-    image: ghcr.io/opendecree/decree:0.11.0-alpha.1
+    image: ghcr.io/opendecree/decree:0.12.0-alpha.4
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     environment:
       GRPC_PORT: "9090"
       HTTP_PORT: "8080"
       INSECURE_LISTEN: "1"             # Plaintext gRPC/HTTP — local demo only
+      # This demo drives the REST API directly with curl, passing x-subject /
+      # x-role identity headers. The 0.12 HTTP gateway rejects those from clients
+      # by default (impersonation guard), so opt into trusted-proxy mode locally.
+      DECREE_GATEWAY_TRUSTED_PROXY: "1"
       DB_WRITE_URL: "postgres://centralconfig:localdev@postgres:5432/centralconfig?sslmode=disable"
       DB_READ_URL: "postgres://centralconfig:localdev@postgres:5432/centralconfig?sslmode=disable"
       REDIS_URL: "redis://redis:6379"

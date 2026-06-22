@@ -30,6 +30,17 @@ Then open:
 - **[http://localhost:3000](http://localhost:3000)** — Admin panel (switch between tenant1 and tenant2)
 - **[http://localhost:8080](http://localhost:8080)** — Decree REST API
 
+The admin panel runs in full mode as a superadmin, so it opens on the system
+overview — every tenant and schema at a glance, with audit-chain and governance
+health. Click a tenant to drill into its config:
+
+![Multi-tenant system overview — all tenants and schemas](../assets/screenshots/multi-tenant-overview.png)
+
+Drilling into a tenant opens the redesigned config editor — one row per field with
+type-aware inputs (dropdowns, toggles, number/URL fields) and a per-field checksum:
+
+![Multi-tenant config editor — tenant1's values](../assets/screenshots/multi-tenant-config-editor.png)
+
 ## Step-by-step walkthrough
 
 ### Step 1 — App deploys the schema
@@ -98,10 +109,15 @@ pricing.free_tier_limit: 50
 
 ### Step 4 — Verify isolation
 
+> The REST calls below send `x-subject` and `x-role: superadmin` identity headers.
+> The demo server sets `DECREE_GATEWAY_TRUSTED_PROXY=1` so the HTTP gateway accepts
+> them (it rejects client identity headers by default); reading across tenants
+> requires the superadmin role.
+
 Look up each tenant's ID (REST endpoints address tenants by UUID, not name):
 
 ```bash
-curl -s http://localhost:8080/v1/tenants -H "x-subject: demo-user" | python3 -m json.tool
+curl -s http://localhost:8080/v1/tenants -H "x-subject: demo-user" -H "x-role: superadmin" | python3 -m json.tool
 ```
 
 Note the `id` for `tenant1` and `tenant2`, then export them for the commands below:
@@ -115,10 +131,10 @@ Read both tenants and confirm their values are independent:
 
 ```bash
 # Tenant 1 — US store
-curl http://localhost:8080/v1/tenants/$TENANT1_ID/config -H "x-subject: demo-user"
+curl http://localhost:8080/v1/tenants/$TENANT1_ID/config -H "x-subject: demo-user" -H "x-role: superadmin"
 
 # Tenant 2 — EU store
-curl http://localhost:8080/v1/tenants/$TENANT2_ID/config -H "x-subject: demo-user"
+curl http://localhost:8080/v1/tenants/$TENANT2_ID/config -H "x-subject: demo-user" -H "x-role: superadmin"
 ```
 
 Now change tenant 1's tax rate:
@@ -126,7 +142,7 @@ Now change tenant 1's tax rate:
 ```bash
 curl -X PUT http://localhost:8080/v1/tenants/$TENANT1_ID/config/fields/checkout.tax_rate \
   -H "Content-Type: application/json" \
-  -H "x-subject: demo-user" \
+  -H "x-subject: demo-user" -H "x-role: superadmin" \
   -d '{"value": {"numberValue": 0.10}, "description": "Runtime override demo"}'
 ```
 
@@ -134,10 +150,10 @@ Read both again — tenant 2 is untouched:
 
 ```bash
 # tenant1 → 0.1 (updated)
-curl http://localhost:8080/v1/tenants/$TENANT1_ID/config/fields/checkout.tax_rate -H "x-subject: demo-user"
+curl http://localhost:8080/v1/tenants/$TENANT1_ID/config/fields/checkout.tax_rate -H "x-subject: demo-user" -H "x-role: superadmin"
 
 # tenant2 → 0.2 (unchanged)
-curl http://localhost:8080/v1/tenants/$TENANT2_ID/config/fields/checkout.tax_rate -H "x-subject: demo-user"
+curl http://localhost:8080/v1/tenants/$TENANT2_ID/config/fields/checkout.tax_rate -H "x-subject: demo-user" -H "x-role: superadmin"
 ```
 
 **Why it matters:** Config changes are scoped to a single tenant. There is no shared mutable state between tenants — even though they share a schema.
@@ -150,7 +166,7 @@ Try setting an invalid value — the server rejects it:
 # Attempt to set currency to an unsupported value (not in enum)
 curl -X PUT http://localhost:8080/v1/tenants/$TENANT1_ID/config/fields/checkout.currency \
   -H "Content-Type: application/json" \
-  -H "x-subject: demo-user" \
+  -H "x-subject: demo-user" -H "x-role: superadmin" \
   -d '{"value": {"stringValue": "JPY"}}'
 # → 400 Bad Request: constraint violation
 ```
@@ -215,11 +231,12 @@ docker compose down -v
 |---------|-------|-------|---------|
 | postgres | `postgres:17` | (internal) | Schema, config, and audit storage |
 | redis | `redis:7` | (internal) | Cache invalidation + real-time pub/sub |
-| decree-server | `ghcr.io/opendecree/decree:0.11.0-alpha.1` | 8080 | Core config management |
-| seed-schema | `ghcr.io/opendecree/decree-cli:0.11.0-alpha.1` | — | Step 1: imports saas-ecommerce schema |
-| seed-tenant1 | `ghcr.io/opendecree/decree-cli:0.11.0-alpha.1` | — | Step 2: provisions tenant1 config |
-| seed-tenant2 | `ghcr.io/opendecree/decree-cli:0.11.0-alpha.1` | — | Step 3: provisions tenant2 config |
-| admin | `ghcr.io/opendecree/decree-ui:0.1.0-alpha.1` | 3000 | Admin GUI (multi-tenant mode) |
+| migrate | `ghcr.io/opendecree/decree-cli:0.12.0-alpha.4` | — | Runs DB migrations (creates the `decree_app` role), then exits |
+| decree-server | `ghcr.io/opendecree/decree:0.12.0-alpha.4` | 8080 | Core config management |
+| seed-schema | `ghcr.io/opendecree/decree-cli:0.12.0-alpha.4` | — | Step 1: imports saas-ecommerce schema |
+| seed-tenant1 | `ghcr.io/opendecree/decree-cli:0.12.0-alpha.4` | — | Step 2: provisions tenant1 config |
+| seed-tenant2 | `ghcr.io/opendecree/decree-cli:0.12.0-alpha.4` | — | Step 3: provisions tenant2 config |
+| admin | `ghcr.io/opendecree/decree-ui:0.2.0-alpha.2` | 3000 | Admin GUI (full mode, superadmin) |
 
 ### Seed files
 

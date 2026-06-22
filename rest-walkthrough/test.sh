@@ -14,7 +14,7 @@ docker compose up -d
 
 echo "=== Waiting for server ==="
 for i in $(seq 1 30); do
-  curl -sf "${BASE}/v1/server/info" -H "x-subject: ${SUBJECT}" >/dev/null && break
+  curl -sf "${BASE}/v1/server/info" -H "x-subject: ${SUBJECT}" -H "x-role: superadmin" >/dev/null && break
   [ "$i" = "30" ] && fail "server never became ready"
   sleep 2
 done
@@ -22,7 +22,7 @@ done
 echo "=== Create schema ==="
 SCHEMA=$(curl -sf -X POST "${BASE}/v1/schemas" \
   -H "Content-Type: application/json" \
-  -H "x-subject: ${SUBJECT}" \
+  -H "x-subject: ${SUBJECT}" -H "x-role: superadmin" \
   -d '{
     "name": "app-config",
     "description": "CI test schema",
@@ -39,13 +39,13 @@ echo "Schema ID: $SCHEMA_ID"
 echo "=== Publish schema ==="
 curl -sf -X POST "${BASE}/v1/schemas/${SCHEMA_ID}/publish" \
   -H "Content-Type: application/json" \
-  -H "x-subject: ${SUBJECT}" \
+  -H "x-subject: ${SUBJECT}" -H "x-role: superadmin" \
   -d '{"version": 1}' >/dev/null
 
 echo "=== Create tenant ==="
 TENANT=$(curl -sf -X POST "${BASE}/v1/tenants" \
   -H "Content-Type: application/json" \
-  -H "x-subject: ${SUBJECT}" \
+  -H "x-subject: ${SUBJECT}" -H "x-role: superadmin" \
   -d "{\"name\": \"ci-tenant\", \"schemaId\": \"${SCHEMA_ID}\", \"schemaVersion\": 1}")
 TENANT_ID=$(echo "$TENANT" | python3 -c "import sys,json; print(json.load(sys.stdin)['tenant']['id'])")
 echo "Tenant ID: $TENANT_ID"
@@ -53,18 +53,18 @@ echo "Tenant ID: $TENANT_ID"
 echo "=== Set individual fields ==="
 curl -sf -X PUT "${BASE}/v1/tenants/${TENANT_ID}/config/fields/app.maintenance_mode" \
   -H "Content-Type: application/json" \
-  -H "x-subject: ${SUBJECT}" \
+  -H "x-subject: ${SUBJECT}" -H "x-role: superadmin" \
   -d '{"value": {"boolValue": false}, "description": "ci init"}' >/dev/null
 
 curl -sf -X PUT "${BASE}/v1/tenants/${TENANT_ID}/config/fields/app.max_connections" \
   -H "Content-Type: application/json" \
-  -H "x-subject: ${SUBJECT}" \
+  -H "x-subject: ${SUBJECT}" -H "x-role: superadmin" \
   -d '{"value": {"integerValue": "100"}}' >/dev/null
 
 echo "=== Batch set ==="
 curl -sf -X POST "${BASE}/v1/tenants/${TENANT_ID}/config:batchSet" \
   -H "Content-Type: application/json" \
-  -H "x-subject: ${SUBJECT}" \
+  -H "x-subject: ${SUBJECT}" -H "x-role: superadmin" \
   -d "{
     \"description\": \"ci batch\",
     \"updates\": [
@@ -74,28 +74,28 @@ curl -sf -X POST "${BASE}/v1/tenants/${TENANT_ID}/config:batchSet" \
   }" >/dev/null
 
 echo "=== Get full config ==="
-CONFIG=$(curl -sf "${BASE}/v1/tenants/${TENANT_ID}/config" -H "x-subject: ${SUBJECT}")
+CONFIG=$(curl -sf "${BASE}/v1/tenants/${TENANT_ID}/config" -H "x-subject: ${SUBJECT}" -H "x-role: superadmin")
 check "$CONFIG" "app.maintenance_mode" "config missing maintenance_mode"
 check "$CONFIG" "app.rate_limit_rps"   "config missing rate_limit_rps"
 echo "Full config: OK"
 
 echo "=== Get single field ==="
 FIELD=$(curl -sf "${BASE}/v1/tenants/${TENANT_ID}/config/fields/app.max_connections" \
-  -H "x-subject: ${SUBJECT}")
+  -H "x-subject: ${SUBJECT}" -H "x-role: superadmin")
 check "$FIELD" "max_connections" "single field response missing path"
 echo "Single field: OK"
 
 echo "=== Batch get ==="
 BATCH=$(curl -sf -X POST "${BASE}/v1/tenants/${TENANT_ID}/config:batchGet" \
   -H "Content-Type: application/json" \
-  -H "x-subject: ${SUBJECT}" \
+  -H "x-subject: ${SUBJECT}" -H "x-role: superadmin" \
   -d '{"fieldPaths": ["app.maintenance_mode", "app.max_connections"]}')
 check "$BATCH" "maintenance_mode" "batch get missing maintenance_mode"
 check "$BATCH" "max_connections"  "batch get missing max_connections"
 echo "Batch get: OK"
 
 echo "=== Audit log ==="
-AUDIT=$(curl -sf "${BASE}/v1/audit/logs?tenantId=${TENANT_ID}" -H "x-subject: ${SUBJECT}")
+AUDIT=$(curl -sf "${BASE}/v1/audit/logs?tenantId=${TENANT_ID}" -H "x-subject: ${SUBJECT}" -H "x-role: superadmin")
 check "$AUDIT" "app.maintenance_mode" "audit log missing write event"
 echo "Audit log: OK"
 

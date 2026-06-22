@@ -9,10 +9,17 @@ echo "=== Starting demo ==="
 
 echo ""
 echo "=== Waiting for payroll service ==="
-for i in $(seq 1 30); do
-  curl -sf http://localhost:4000/api/config >/dev/null && break
+READY=false
+for i in $(seq 1 45); do
+  curl -sf http://localhost:4000/api/config >/dev/null && { READY=true; break; }
   sleep 2
 done
+if [ "$READY" != true ]; then
+  echo "payroll-service did not become ready in time; recent logs:"
+  $COMPOSE logs --tail=40 payroll-service decree-server
+  $COMPOSE down -v
+  exit 1
+fi
 
 echo ""
 echo "=== Testing payroll service endpoints ==="
@@ -41,12 +48,12 @@ echo "=== Verifying seed state via CLI ==="
 
 # Both tenants must exist
 ACME_CFG=$($COMPOSE run --rm --no-TTY seed-acme config get-all acme \
-  --server decree-server:9090 --subject test 2>&1)
+  --server decree-server:9090 --subject test --insecure 2>&1)
 echo "Acme config output: $ACME_CFG"
 echo "$ACME_CFG" | grep -q "payroll.tax_rate" || { echo "FAIL: acme config missing"; exit 1; }
 
 GLOBEX_CFG=$($COMPOSE run --rm --no-TTY seed-globex config get-all globex \
-  --server decree-server:9090 --subject test 2>&1)
+  --server decree-server:9090 --subject test --insecure 2>&1)
 echo "Globex config output: $GLOBEX_CFG"
 echo "$GLOBEX_CFG" | grep -q "payroll.tax_rate" || { echo "FAIL: globex config missing"; exit 1; }
 

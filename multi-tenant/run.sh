@@ -41,13 +41,13 @@ $COMPOSE up -d admin
 echo ""
 echo "=== Waiting for decree REST API ==="
 for i in $(seq 1 30); do
-  curl -sf "http://${SERVER}/v1/server/info" -H "x-subject: ${SUBJECT}" >/dev/null 2>&1 && break
+  curl -sf "http://${SERVER}/v1/server/info" -H "x-subject: ${SUBJECT}" -H "x-role: superadmin" >/dev/null 2>&1 && break
   sleep 2
 done
 
 echo ""
 echo "=== Looking up tenant IDs ==="
-TENANTS=$(curl -sf "http://${SERVER}/v1/tenants" -H "x-subject: ${SUBJECT}")
+TENANTS=$(curl -sf "http://${SERVER}/v1/tenants" -H "x-subject: ${SUBJECT}" -H "x-role: superadmin")
 TENANT1_ID=$(echo "$TENANTS" | python3 -c "import sys,json; print(next(t['id'] for t in json.load(sys.stdin)['tenants'] if t['name']=='tenant1'))")
 TENANT2_ID=$(echo "$TENANTS" | python3 -c "import sys,json; print(next(t['id'] for t in json.load(sys.stdin)['tenants'] if t['name']=='tenant2'))")
 echo "    tenant1: $TENANT1_ID"
@@ -56,13 +56,13 @@ echo "    tenant2: $TENANT2_ID"
 echo ""
 echo "=== Reading tenant1 config ==="
 echo "    (US store — USD, 8% tax, 100 free-tier orders)"
-curl -s "http://${SERVER}/v1/tenants/${TENANT1_ID}/config" -H "x-subject: ${SUBJECT}" | \
+curl -s "http://${SERVER}/v1/tenants/${TENANT1_ID}/config" -H "x-subject: ${SUBJECT}" -H "x-role: superadmin" | \
   python3 -m json.tool
 
 echo ""
 echo "=== Reading tenant2 config ==="
 echo "    (EU store — EUR, 20% tax, 50 free-tier orders)"
-curl -s "http://${SERVER}/v1/tenants/${TENANT2_ID}/config" -H "x-subject: ${SUBJECT}" | \
+curl -s "http://${SERVER}/v1/tenants/${TENANT2_ID}/config" -H "x-subject: ${SUBJECT}" -H "x-role: superadmin" | \
   python3 -m json.tool
 
 echo ""
@@ -70,17 +70,17 @@ echo "=== Demonstrating isolation: changing tenant1 does not affect tenant2 ==="
 echo "    Setting tenant1 checkout.tax_rate to 0.10 (a runtime override)..."
 curl -s -X PUT "http://${SERVER}/v1/tenants/${TENANT1_ID}/config/fields/checkout.tax_rate" \
   -H "Content-Type: application/json" \
-  -H "x-subject: ${SUBJECT}" \
+  -H "x-subject: ${SUBJECT}" -H "x-role: superadmin" \
   -d '{"value": {"numberValue": 0.10}, "description": "Runtime override demo"}' | python3 -m json.tool
 
 echo ""
 echo "    tenant1 checkout.tax_rate after update:"
-curl -s "http://${SERVER}/v1/tenants/${TENANT1_ID}/config/fields/checkout.tax_rate" -H "x-subject: ${SUBJECT}" | \
+curl -s "http://${SERVER}/v1/tenants/${TENANT1_ID}/config/fields/checkout.tax_rate" -H "x-subject: ${SUBJECT}" -H "x-role: superadmin" | \
   python3 -m json.tool
 
 echo ""
 echo "    tenant2 checkout.tax_rate (unchanged — still 0.20):"
-curl -s "http://${SERVER}/v1/tenants/${TENANT2_ID}/config/fields/checkout.tax_rate" -H "x-subject: ${SUBJECT}" | \
+curl -s "http://${SERVER}/v1/tenants/${TENANT2_ID}/config/fields/checkout.tax_rate" -H "x-subject: ${SUBJECT}" -H "x-role: superadmin" | \
   python3 -m json.tool
 
 echo ""
@@ -89,7 +89,7 @@ echo "    Admin panel (all tenants): http://localhost:3000"
 echo "    REST API:                  http://localhost:8080"
 echo ""
 echo "    Try it:"
-echo "      curl http://localhost:8080/v1/tenants/${TENANT1_ID}/config -H 'x-subject: ${SUBJECT}'"
-echo "      curl http://localhost:8080/v1/tenants/${TENANT2_ID}/config -H 'x-subject: ${SUBJECT}'"
+echo "      curl http://localhost:8080/v1/tenants/${TENANT1_ID}/config -H 'x-subject: ${SUBJECT}' -H 'x-role: superadmin'"
+echo "      curl http://localhost:8080/v1/tenants/${TENANT2_ID}/config -H 'x-subject: ${SUBJECT}' -H 'x-role: superadmin'"
 echo ""
 echo "    Run 'docker compose down -v' to tear down and remove all data."

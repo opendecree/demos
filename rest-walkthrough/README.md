@@ -22,13 +22,21 @@
 docker compose up -d
 ```
 
-Wait a few seconds for the database migrations to finish, then confirm the server is up:
+The stack runs the `migrate` service (database migrations) before the server
+starts. Once `docker compose up` settles, confirm the server is up:
 
 ```bash
 curl -s http://localhost:8080/v1/server/info | jq .
 ```
 
 Expected output includes `"version"` and `"commit"`.
+
+> **Identity headers:** the API authorizes every request by `x-subject` (who is
+> acting) and `x-role` (what they may do). This demo's server sets
+> `DECREE_GATEWAY_TRUSTED_PROXY=1` so the HTTP gateway accepts these headers
+> directly — by default it rejects client-set identity headers to prevent
+> impersonation. Creating schemas and tenants requires `x-role: superadmin`,
+> which the commands below use throughout.
 
 ---
 
@@ -39,7 +47,7 @@ A schema defines the shape of your configuration: field names, types, and constr
 ```bash
 SCHEMA=$(curl -s -X POST http://localhost:8080/v1/schemas \
   -H "Content-Type: application/json" \
-  -H "x-subject: walkthrough" \
+  -H "x-subject: walkthrough" -H "x-role: superadmin" \
   -d '{
     "name": "app-config",
     "description": "Runtime configuration for a web application",
@@ -85,7 +93,7 @@ Publishing locks the version and makes it available for tenant assignment.
 ```bash
 curl -s -X POST "http://localhost:8080/v1/schemas/${SCHEMA_ID}/publish" \
   -H "Content-Type: application/json" \
-  -H "x-subject: walkthrough" \
+  -H "x-subject: walkthrough" -H "x-role: superadmin" \
   -d '{"version": 1}' | jq .
 ```
 
@@ -98,7 +106,7 @@ A tenant is an isolated config namespace (e.g., a customer, environment, or regi
 ```bash
 TENANT=$(curl -s -X POST http://localhost:8080/v1/tenants \
   -H "Content-Type: application/json" \
-  -H "x-subject: walkthrough" \
+  -H "x-subject: walkthrough" -H "x-role: superadmin" \
   -d "{
     \"name\": \"my-app\",
     \"schemaId\": \"${SCHEMA_ID}\",
@@ -121,14 +129,14 @@ echo "Tenant ID: $TENANT_ID"
 curl -s -X PUT \
   "http://localhost:8080/v1/tenants/${TENANT_ID}/config/fields/app.maintenance_mode" \
   -H "Content-Type: application/json" \
-  -H "x-subject: walkthrough" \
+  -H "x-subject: walkthrough" -H "x-role: superadmin" \
   -d '{"value": {"boolValue": false}, "description": "initial values"}' | jq .
 
 # Set max connections
 curl -s -X PUT \
   "http://localhost:8080/v1/tenants/${TENANT_ID}/config/fields/app.max_connections" \
   -H "Content-Type: application/json" \
-  -H "x-subject: walkthrough" \
+  -H "x-subject: walkthrough" -H "x-role: superadmin" \
   -d '{"value": {"integerValue": "100"}}' | jq .
 ```
 
@@ -140,7 +148,7 @@ curl -s -X PUT \
 curl -s -X POST \
   "http://localhost:8080/v1/tenants/${TENANT_ID}/config:batchSet" \
   -H "Content-Type: application/json" \
-  -H "x-subject: walkthrough" \
+  -H "x-subject: walkthrough" -H "x-role: superadmin" \
   -d "{
     \"description\": \"set rate limit and support URL\",
     \"updates\": [
@@ -165,7 +173,7 @@ curl -s -X POST \
 ```bash
 curl -s \
   "http://localhost:8080/v1/tenants/${TENANT_ID}/config" \
-  -H "x-subject: walkthrough" | jq .
+  -H "x-subject: walkthrough" -H "x-role: superadmin" | jq .
 ```
 
 ### Single field
@@ -173,7 +181,7 @@ curl -s \
 ```bash
 curl -s \
   "http://localhost:8080/v1/tenants/${TENANT_ID}/config/fields/app.rate_limit_rps" \
-  -H "x-subject: walkthrough" | jq .
+  -H "x-subject: walkthrough" -H "x-role: superadmin" | jq .
 ```
 
 ### Multiple fields in one request
@@ -182,7 +190,7 @@ curl -s \
 curl -s -X POST \
   "http://localhost:8080/v1/tenants/${TENANT_ID}/config:batchGet" \
   -H "Content-Type: application/json" \
-  -H "x-subject: walkthrough" \
+  -H "x-subject: walkthrough" -H "x-role: superadmin" \
   -d '{"fieldPaths": ["app.maintenance_mode", "app.max_connections", "app.rate_limit_rps"]}' | jq .
 ```
 
@@ -195,7 +203,7 @@ Open a second terminal and start a live subscription — the server pushes event
 ```bash
 curl -N \
   "http://localhost:8080/v1/tenants/${TENANT_ID}/config:subscribe" \
-  -H "x-subject: walkthrough"
+  -H "x-subject: walkthrough" -H "x-role: superadmin"
 ```
 
 Back in the first terminal, flip maintenance mode on:
@@ -204,7 +212,7 @@ Back in the first terminal, flip maintenance mode on:
 curl -s -X PUT \
   "http://localhost:8080/v1/tenants/${TENANT_ID}/config/fields/app.maintenance_mode" \
   -H "Content-Type: application/json" \
-  -H "x-subject: walkthrough" \
+  -H "x-subject: walkthrough" -H "x-role: superadmin" \
   -d '{"value": {"boolValue": true}, "description": "maintenance window"}' | jq .
 ```
 
@@ -221,7 +229,7 @@ Every write is recorded. Query the full history for your tenant:
 ```bash
 curl -s \
   "http://localhost:8080/v1/audit/logs?tenantId=${TENANT_ID}" \
-  -H "x-subject: walkthrough" | jq '.logs[] | {actor, action, fieldPath, newValue, createdAt}'
+  -H "x-subject: walkthrough" -H "x-role: superadmin" | jq '.logs[] | {actor, action, fieldPath, newValue, createdAt}'
 ```
 
 ---

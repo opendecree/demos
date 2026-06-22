@@ -37,6 +37,11 @@ demo-name/
 - Apache 2.0 license
 - Alpha status — everything subject to change
 
+### 0.12 server requirements
+
+- **DB bootstrap:** a `migrate` service (decree-cli image, `command: ["migrate","up"]`) runs the migrations before `decree-server` starts — the 0.12 server assumes the unprivileged `decree_app` role on every connection and will not start against an unmigrated database. The server `depends_on` `migrate` with `condition: service_completed_successfully`. Do **not** create the schema via a postgres `init.sql`.
+- **Local auth:** the demo server runs plaintext (`INSECURE_LISTEN=1`), so CLI/seed commands pass `--insecure`. The server also sets `DECREE_GATEWAY_TRUSTED_PROXY=1` so the HTTP gateway (admin UI + curl) accepts `x-subject` / `x-role` identity headers, which it rejects from clients by default. Cross-tenant REST calls use `x-role: superadmin`.
+
 ## Project Management
 
 - Parent issue: opendecree/decree#30

@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -49,17 +50,34 @@ func run() error {
 	}
 	log.Printf("Using tenant: %s", tenantID)
 
+	// Auth: a read-only config consumer scoped to its own tenant. 0.12 requires
+	// an explicit role for metadata auth (no JWT here).
+	authOpts := []grpctransport.Option{
+		grpctransport.WithSubject("payroll-service"),
+		grpctransport.WithRole("user"),
+		grpctransport.WithTenantID(tenantID),
+	}
+
 	// --- Config client for on-demand reads ---
-	client := grpctransport.NewConfigClient(conn, grpctransport.WithSubject("payroll-service"))
+	client, err := grpctransport.NewConfigClient(conn, authOpts...)
+	if err != nil {
+		return fmt.Errorf("create config client: %w", err)
+	}
 
 	// --- Config watcher for live values ---
-	w := grpctransport.NewWatcher(conn, tenantID, grpctransport.WithSubject("payroll-service"))
-	taxRate := w.Float("payroll.tax_rate", 0.025)
-	overtimeMul := w.Float("payroll.overtime_multiplier", 1.5)
-	processingFee := w.Float("payroll.processing_fee", 0.30)
-	currency := w.String("payroll.currency", "USD")
-	baseAmount := w.Float("payroll.base_amount", 5000)
-	periodDays := w.Int("payroll.period_days", 30)
+	w, err := grpctransport.NewWatcher(conn, tenantID, authOpts...)
+	if err != nil {
+		return fmt.Errorf("create watcher: %w", err)
+	}
+	taxRate, err1 := w.Float("payroll.tax_rate", 0.025)
+	overtimeMul, err2 := w.Float("payroll.overtime_multiplier", 1.5)
+	processingFee, err3 := w.Float("payroll.processing_fee", 0.30)
+	currency, err4 := w.String("payroll.currency", "USD")
+	baseAmount, err5 := w.Float("payroll.base_amount", 5000)
+	periodDays, err6 := w.Int("payroll.period_days", 30)
+	if err := errors.Join(err1, err2, err3, err4, err5, err6); err != nil {
+		return fmt.Errorf("register watched fields: %w", err)
+	}
 
 	if err := w.Start(ctx); err != nil {
 		return fmt.Errorf("start watcher: %w", err)
@@ -109,10 +127,10 @@ func run() error {
 		writeJSON(w, map[string]any{
 			"tax_rate":            taxRate.Get(),
 			"overtime_multiplier": overtimeMul.Get(),
-			"processing_fee":     processingFee.Get(),
-			"currency":           currency.Get(),
-			"base_amount":        baseAmount.Get(),
-			"period_days":        periodDays.Get(),
+			"processing_fee":      processingFee.Get(),
+			"currency":            currency.Get(),
+			"base_amount":         baseAmount.Get(),
+			"period_days":         periodDays.Get(),
 		})
 	})
 

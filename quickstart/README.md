@@ -28,6 +28,12 @@ Then open:
 - **[http://localhost:4000](http://localhost:4000)** — Payroll Service dashboard
 - **[http://localhost:3000](http://localhost:3000)** — Admin panel
 
+The admin panel opens straight on acme's config editor — the role-first UI lands
+each user on their primary task, and `admin` on a single pinned tenant goes right
+to its config. Every field is one row with a type-aware input:
+
+![Quickstart config editor — acme's payroll config](../assets/screenshots/quickstart-config-editor.png)
+
 ## Step-by-step walkthrough
 
 The same four steps `run.sh` executes, explained in detail.
@@ -116,9 +122,9 @@ When you change a value in the admin panel (or via CLI), it flows: Admin → Dec
 
 ### Change a config value via admin panel
 
-1. Open the [Admin panel](http://localhost:3000) — it lands on the acme config editor
-2. Click **Edit**, then change `payroll.tax_rate` from `0.025` to `0.1`
-3. Click **Apply** and watch the dashboard — Tax Rate updates instantly from 2.5% to 10.0%
+1. Open the [Admin panel](http://localhost:3000) — `admin` lands directly on acme's config editor
+2. Find the `payroll.tax_rate` field, change its value from `0.025` to `0.1`, and save
+3. Watch the dashboard — Tax Rate updates instantly from 2.5% to 10.0%, no restart needed
 
 ### Use the CLI
 
@@ -177,11 +183,12 @@ docker compose down -v
 |---------|-------|-------|---------|
 | postgres | `postgres:17` | (internal) | Schema, config, and audit storage |
 | redis | `redis:7` | (internal) | Cache invalidation + real-time pub/sub |
-| decree-server | `ghcr.io/opendecree/decree:0.11.0-alpha.1` | (internal) | Core config management |
-| seed-schema | `ghcr.io/opendecree/decree-cli:0.11.0-alpha.1` | — | Step 1: imports payroll schema |
-| seed-acme | `ghcr.io/opendecree/decree-cli:0.11.0-alpha.1` | — | Step 2: provisions acme config |
-| seed-globex | `ghcr.io/opendecree/decree-cli:0.11.0-alpha.1` | — | Step 3: provisions globex config |
-| admin | `ghcr.io/opendecree/decree-ui:0.1.0-alpha.1` | 3000 | Admin GUI (nginx + React SPA) |
+| migrate | `ghcr.io/opendecree/decree-cli:0.12.0-alpha.4` | — | Runs DB migrations (creates the `decree_app` role), then exits |
+| decree-server | `ghcr.io/opendecree/decree:0.12.0-alpha.4` | (internal) | Core config management |
+| seed-schema | `ghcr.io/opendecree/decree-cli:0.12.0-alpha.4` | — | Step 1: imports payroll schema |
+| seed-acme | `ghcr.io/opendecree/decree-cli:0.12.0-alpha.4` | — | Step 2: provisions acme config |
+| seed-globex | `ghcr.io/opendecree/decree-cli:0.12.0-alpha.4` | — | Step 3: provisions globex config |
+| admin | `ghcr.io/opendecree/decree-ui:0.2.0-alpha.2` | 3000 | Admin GUI (nginx + React SPA) |
 | payroll-service | Built from `./service` | 4000 | Demo app (Go + WebSocket) |
 
 ### Decree Server Environment Variables
@@ -200,10 +207,10 @@ docker compose down -v
 | Variable | Value | Purpose |
 |----------|-------|---------|
 | `API_URL` | http://decree-server:8080 | Backend API (proxied by nginx) |
-| `LAYOUT_MODE` | single-tenant | Hides schema/tenant navigation |
+| `LAYOUT_MODE` | single-tenant | Pin to one tenant; drop the tenant picker |
 | `TENANT_ID` | acme | Pre-selected tenant (slug or UUID) |
 | `SCHEMA_ID` | (optional) | Pre-select a specific schema |
-| `DEFAULT_ROLE` | admin | Default auth role (admin, not superadmin) |
+| `DEFAULT_ROLE` | admin | Auth role; `admin` lands on the config editor (not superadmin) |
 | `DEFAULT_SUBJECT` | admin | Default auth identity |
 | `BROWSER_API_URL` | (empty) | Browser API URL (empty = same-origin proxy) |
 | `LOGO_URL` | (empty) | Custom logo URL (empty = OpenDecree logo) |

@@ -4,8 +4,9 @@ tenant:
   schema: payroll-service
   # schema_version omitted — binds to whatever version is currently published
 config:
-  description: Initial payroll configuration for Acme Corp
+  description: Acme Corp baseline (US)
   values:
+    # Pay run
     payroll.base_amount:
       value: 5000
     payroll.currency:
@@ -18,3 +19,20 @@ config:
       value: 1.5
     payroll.processing_fee:
       value: 0.30
+    # Schedule
+    schedule.run_at:
+      value: "2026-01-15T09:00:00Z"
+    schedule.processing_window:
+      value: "1h"
+    schedule.pay_day_of_month:
+      value: 1
+    # Notifications
+    notifications.payslip_email_enabled:
+      value: true
+    notifications.webhook_url:
+      value: "https://hooks.acme.example.com/payroll"
+    notifications.webhook_secret:
+      value: "acme-demo-signing-secret"
+    # Compliance
+    compliance.deductions:
+      value: '{"retirement_401k": 200, "health_insurance": 150}'
