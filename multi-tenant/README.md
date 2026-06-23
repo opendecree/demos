@@ -183,13 +183,13 @@ checkout.express_enabled:
   description: Enable express checkout for this store
 ```
 
-Re-seed the schema — the new field appears for both tenants immediately:
+Re-seed the schema — the new field is added to the schema definition immediately (check `GET /v1/schemas` to see it):
 
 ```bash
 docker compose run --rm seed-schema
 ```
 
-Neither tenant's existing config values are affected. The new field is available to both, ready to be configured.
+Neither tenant's existing config values are affected. The field won't appear in a tenant's `/config` response until that tenant sets a value for it — `/config` only returns explicitly-set values, not the full schema field list.
 
 ## What's happening
 
