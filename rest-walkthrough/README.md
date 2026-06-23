@@ -9,7 +9,7 @@
 - How to create a schema and publish it
 - How to create a tenant and set config values
 - How to read individual fields and the full config snapshot
-- How to watch for real-time changes via server-sent events
+- How to watch for real-time changes via a streaming JSON response
 
 ## Prerequisites
 
@@ -198,7 +198,7 @@ curl -s -X POST \
 
 ## Step 6 — Watch for changes
 
-Open a second terminal and start a live subscription — the server pushes events whenever config changes:
+Open a second terminal and start a live subscription — the server streams a chunked JSON response from the gRPC-gateway, pushing a new JSON object whenever config changes:
 
 ```bash
 curl -N \
@@ -216,7 +216,7 @@ curl -s -X PUT \
   -d '{"value": {"boolValue": true}, "description": "maintenance window"}' | jq .
 ```
 
-The subscription terminal receives a `ConfigChange` event within milliseconds — no polling needed.
+The subscription terminal receives a `{"result":{"change":{...}}}` JSON object within milliseconds — no polling needed.
 
 Press `Ctrl-C` to end the stream.
 
@@ -229,7 +229,7 @@ Every write is recorded. Query the full history for your tenant:
 ```bash
 curl -s \
   "http://localhost:8080/v1/audit/logs?tenantId=${TENANT_ID}" \
-  -H "x-subject: walkthrough" -H "x-role: superadmin" | jq '.logs[] | {actor, action, fieldPath, newValue, createdAt}'
+  -H "x-subject: walkthrough" -H "x-role: superadmin" | jq '.entries[] | {actor, action, fieldPath, newValue, createdAt}'
 ```
 
 ---

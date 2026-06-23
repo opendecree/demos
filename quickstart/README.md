@@ -80,7 +80,7 @@ Two tenants, one schema, independent config. The schema is not duplicated — Gl
 The seeded config is the git baseline — config-as-code. But you can layer runtime overrides on top without touching the seed file:
 
 ```bash
-decree config set acme payroll.tax_rate 0.22 --server localhost:9090 --subject admin
+decree config set acme payroll.tax_rate 0.22 --server localhost:9090 --subject admin --insecure
 ```
 
 Watch the Payroll Service dashboard — the tax rate updates instantly via gRPC stream, no restart needed.
